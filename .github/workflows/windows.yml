@@ -40,10 +40,16 @@ jobs:
       - name: Verify installed Windows app and Mailto registration
         shell: pwsh
         run: |
-          $installer = Get-ChildItem release/*Setup.exe | Select-Object -First 1
-          $checksum = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash + '  ' + $installer.Name
-          Set-Content -LiteralPath release/SHA256SUMS -Value $checksum
-          ./scripts/test-windows-installer.ps1 -Installer $installer.FullName -Checksums release/SHA256SUMS
+          try {
+            $installer = Get-ChildItem release/*Setup.exe | Select-Object -First 1
+            $checksum = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash + '  ' + $installer.Name
+            Set-Content -LiteralPath release/SHA256SUMS -Value $checksum
+            ./scripts/test-windows-installer.ps1 -Installer $installer.FullName -Checksums release/SHA256SUMS
+          } catch {
+            $message = $_.Exception.Message.Replace('%', '%25').Replace([string][char]13, '%0D').Replace([string][char]10, '%0A')
+            Write-Output "::error title=Windows install verification::$message"
+            exit 1
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: Postblick-Windows-x64
