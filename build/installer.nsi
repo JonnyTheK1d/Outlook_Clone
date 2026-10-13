@@ -37,7 +37,7 @@ FunctionEnd
 
 Section "Postblick" SEC_APP
   SetOutPath "$INSTDIR"
-  File /r "${PROJECT_DIR}/release/win-unpacked/*"
+  File /r "${PROJECT_DIR}\release\win-unpacked\*"
   WriteUninstaller "$INSTDIR\Uninstall Postblick.exe"
   CreateDirectory "$SMPROGRAMS\Postblick"
   CreateShortcut "$SMPROGRAMS\Postblick\Postblick.lnk" "$INSTDIR\Postblick.exe"
