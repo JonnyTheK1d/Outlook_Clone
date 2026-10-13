@@ -17,3 +17,5 @@ Die App startet mit Demo-Daten. Echte Microsoft- und IMAP/SMTP-Konten sind imple
 Offen: unter anderem PST/MSG, S/MIME, Exchange-Freigaben, Add-ins, Viren-/Phishingprüfung, Offline-Konfliktauflösung und weitere Komfortfunktionen. [Vollständiger Funktionsstand](https://github.com/JonnyTheK1d/Outlook_Clone/blob/main/docs/feature-status.md).
 
 0.2.1 korrigiert gleiche IMAP-Kennungen im gemeinsamen Posteingang, Microsoft-Versand mit mehreren Anhängen und Datumsangaben bei Serverentwürfen.
+
+Windows-Benachrichtigungen erhalten eine registrierte App-Identität und ein eigenes Symbol; ungelesene Nachrichten werden zusätzlich an der Taskleiste angezeigt.

@@ -29,6 +29,8 @@ try {
   $mailCommand = (Get-Item -LiteralPath 'HKCU:\Software\Classes\Postblick.Mailto\shell\open\command').GetValue('')
   $expectedCommand = '"' + $application + '" "%1"'
   if ($mailCommand -ne $expectedCommand) { throw 'Mailto launch command is incorrect.' }
+  $notificationName = (Get-Item -LiteralPath 'HKCU:\Software\Classes\AppUserModelId\de.postblick.desktop').GetValue('DisplayName')
+  if ($notificationName -ne 'Postblick' -or -not (Test-Path (Join-Path $destination 'resources\icon.png'))) { throw 'Windows notification identity is missing.' }
   $process = Start-Process -FilePath $application -PassThru
   $opened = $false
   for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -50,6 +52,7 @@ try {
   if (Test-Path -LiteralPath $application) { throw 'Uninstallation did not remove the program.' }
   if (-not (Test-Path -LiteralPath $marker)) { throw 'Uninstallation removed a user-owned file.' }
   if (Test-Path -LiteralPath 'HKCU:\Software\Classes\Postblick.Mailto') { throw 'Uninstallation did not remove the app-owned Mailto registration.' }
+  if (Test-Path -LiteralPath 'HKCU:\Software\Classes\AppUserModelId\de.postblick.desktop') { throw 'Uninstallation did not remove the notification identity.' }
   "Windows installation, desktop startup and uninstallation passed." | Tee-Object -Variable result
   if ($env:GITHUB_STEP_SUMMARY) { $result | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
 } finally {

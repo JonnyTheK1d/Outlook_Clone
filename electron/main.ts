@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, session, Notification } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, session, Notification, nativeImage } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile, stat, writeFile } from 'node:fs/promises';
@@ -30,7 +30,14 @@ let queue = Promise.resolve();
 function makeProvider(credentials: Credentials, persist = async (current: Credentials) => { store.credentials = current; await store.persistCredentials(); }): Provider {
   return credentials.type === 'imap' ? new ImapProvider(credentials) : new MicrosoftProvider(credentials, persist);
 }
-async function save(): Promise<State> { await store.save(); return store.view(); }
+function updateBadge() {
+  if(process.platform!=='win32' || !window || window.isDestroyed())return;
+  const hasReal=Object.values(store.accounts).some(a=>a.credentials);
+  const count=Object.values(store.accounts).filter(a=>!hasReal || a.credentials).reduce((n,a)=>n+a.state.mails.filter(m=>m.folder==='inbox' && !m.read).length,0);
+  const icon=app.isPackaged?path.join(process.resourcesPath,'icon.png'):path.join(app.getAppPath(),'build/icon.png');
+  window.setOverlayIcon(count?nativeImage.createFromPath(icon):null,count+' ungelesene Nachrichten');
+}
+async function save(): Promise<State> { await store.save(); updateBadge(); return store.view(); }
 async function sync(folder: Folder) {
   if (!['inbox','sent','drafts','archive','junk','trash'].includes(folder) && !store.state.folders?.some(f => f.id === folder)) throw new Error('Dieser Ordner ist nicht vorhanden.');
   if (provider && folder !== 'custom:local-import') {
@@ -131,7 +138,7 @@ async function background() {
         }
       } catch { store.state.syncError = 'Die automatische Synchronisierung ist fehlgeschlagen. Prüfe Verbindung und Anmeldung.'; }
     }
-  } finally { store.activate(active); provider = store.credentials ? makeProvider(store.credentials) : null; await store.save(); window.webContents.send('state-updated', store.view()); }
+  } finally { store.activate(active); provider = store.credentials ? makeProvider(store.credentials) : null; await store.save(); updateBadge(); window.webContents.send('state-updated', store.view()); }
 }
 function register(name: string, handler: (value: any) => Promise<unknown>) {
   ipcMain.handle(name, async (event, value) => {
@@ -233,6 +240,7 @@ function registerHandlers() {
   register('theme', async value => { store.state.theme = z.enum(['light', 'dark']).parse(value); return save(); });
 }
 async function start() {
+  if(process.platform==='win32')app.setAppUserModelId('de.postblick.desktop');
   const dist = path.resolve(__dirname, '../../dist');
   protocol.handle('postblick', async request => {
     const url = new URL(request.url);
@@ -261,7 +269,7 @@ async function start() {
   window.webContents.on('will-navigate', (event, url) => { if (!url.startsWith(origin + '/')) event.preventDefault(); });
   window.webContents.on('will-attach-webview', event => event.preventDefault());
   registerHandlers();
-  window.once('ready-to-show', () => window.show());
+  window.once('ready-to-show', () => { window.show(); updateBadge(); });
   await window.loadURL(development ? origin + '/' : origin + '/index.html');
   initializeUpdates(window);
   const timer = setInterval(() => { if (backgroundRunning) return; backgroundRunning = true; queue = queue.then(background).catch(() => {}).finally(() => { backgroundRunning = false; }); }, 60000); timer.unref();

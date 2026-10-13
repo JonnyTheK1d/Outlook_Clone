@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | Konten | Verschlüsselter Mehrkontenspeicher, Kontowechsel, gemeinsamer Posteingang aus dem Cache | OAuth anderer Anbieter; Herausgeber-Client-ID für Microsoft |
 | Serverkonfiguration | Vorgaben für Gmail, GMX, WEB.DE, Yahoo, iCloud | Allgemeines Autodiscover; getrennte SMTP-Zugangsdaten |
-| Empfang | Hintergrundabruf, Kontointervall, Windows-Benachrichtigungen | IMAP IDLE/Graph Push; geschlossene App; Symbol-Badge |
+| Empfang | Hintergrundabruf, Kontointervall, Windows-Benachrichtigungen und Taskleistenindikator | IMAP IDLE/Graph Push; geschlossene App |
 | Ordner | Erstellen, Umbenennen, Löschen leerer zusätzlicher Ordner; Unterordner; Favoriten | Suchordner; komplexe IMAP-Hierarchieanzeige |
 | Suche | Seitenabruf, alle geladenen Ordner, Filtergrammatik, Graph-/IMAP-Serversuche | Graph maximal 1000 Suchtreffer je Ordner; großer lokaler Suchindex |
 | Organisation | Kategorien, Pinning, Mehrfachaktionen, Drag-and-drop in eigene Ordner, Organisationsleiste per Rechtsklick | Relevant/Sonstige; vollständige Unterhaltungshistorie; Undo |

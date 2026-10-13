@@ -84,7 +84,13 @@
       "enableEmbeddedAsarIntegrityValidation": true,
       "onlyLoadAppFromAsar": true
     },
-    "afterPack": "build/after-pack.cjs"
+    "afterPack": "build/after-pack.cjs",
+    "extraResources": [
+      {
+        "from": "build/icon.png",
+        "to": "icon.png"
+      }
+    ]
   },
   "overrides": {
     "global-agent": "4.1.3"
