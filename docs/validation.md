@@ -5,7 +5,7 @@ In der Linux-Cloud erfolgreich ausgeführt:
 | Prüfung | Ergebnis |
 | --- | --- |
 | TypeScript und Produktionsbuild | Erfolgreich |
-| Kern-/Provider-/Migrationstests | 30 bestanden |
+| Kern-/Provider-/Migrationstests | 31 bestanden |
 | Browser-Workflows | 10 bestanden |
 | Nativer Electron-Test unter Xvfb | 1 bestanden |
 | npm audit (einschließlich Entwicklung) | Keine bekannten Advisories |
@@ -18,4 +18,4 @@ Der native Test prüft die echte IPC-Brücke, Schemas, Isolation, Cache-Neustart
 
 Die Storage-Unit-Tests verwenden einen kontrollierten Ersatz für DPAPI. Sie belegen keine Windows-Kryptografie. Konto-, Tenant-, Einladung-, SMTP-Zustellungs-, Druck-, Mailto-Standard-App- und signierte Update-Ende-zu-Ende-Tests mit realen Benutzerkonten stehen aus. Ein unabhängiges Sicherheitsaudit fehlt.
 
-Windows-Build und Release-Installerprüfung werden über die GitHub-Workflows ausgeführt. Ihre Ergebnisse werden nach Abschluss ergänzt. Die angeforderte vollständige Outlook-Funktionsliste ist noch nicht umgesetzt; der genaue Stand steht in feature-status.md.
+[Windows-Build und nativer Electron-Test](https://github.com/JonnyTheK1d/Outlook_Clone/actions/runs/38410887461) erfolgreich: Produktionsinstaller gebaut, native IPC-/Neustarttests unter Windows sowie DPAPI-Verschlüsselungs-/Entschlüsselungsrundlauf bestanden. Die zusätzliche neue Speicherprüfung lief separat in Linux; die ursprünglichen 30 Kern-/Provider-Tests liefen auch unter Windows. Die Prüfung des ausgelieferten Installers im Release-Workflow folgt. Die angeforderte vollständige Outlook-Funktionsliste ist noch nicht umgesetzt; der genaue Stand steht in feature-status.md.

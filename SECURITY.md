@@ -23,7 +23,7 @@ Postblick 0.2 ist kein Ersatz für Outlooks durch Microsoft geprüfte Sicherheit
 - Keine Virenprüfung von Anhängen, Phishing-Erkennung, S/MIME, Exchange-DLP, Conditional Access-Integration oder automatische Sicherheitsupdates. Anbieterfunktionen gelten unabhängig von Postblick.
 - Der Installer ist unsigniert. Vor einer öffentlichen Verteilung müssen Code-Signing, eine Update-Strategie und ein Sicherheitstest eingerichtet werden.
 - Provider-Tests prüfen Protokollaufrufe mit kontrollierten Testdaten; sie beweisen keine echte Kontoanmeldung oder Zustellung. Echte Konto- und Windows-Sicherheitstests stehen aus.
-- Die Linux-Cloud benötigt bei den nativen UI-Tests `--no-sandbox`, weil der Container keinen Chromium-Sandbox-Start erlaubt. Dieser Testparameter wird **nicht** in die App oder den Installer eingebaut. Context Isolation und deaktivierte Node-Integration werden auch dort geprüft; eine Windows-Prozesssandbox ist damit nicht validiert.
+- Die Linux-Cloud benötigt bei den nativen UI-Tests `--no-sandbox`, weil der Container keinen Chromium-Sandbox-Start erlaubt. Dieser Testparameter wird **nicht** in die App oder den Installer eingebaut. Context Isolation und deaktivierte Node-Integration werden auch dort geprüft; dieser Linux-Test validiert keine Windows-Prozesssandbox. Der native Windows-Test prüft zusätzlich die aktivierten Sandbox-/Isolationsoptionen und einen DPAPI-Rundlauf, kein unabhängiges Audit.
 
 ## Abhängigkeiten
 

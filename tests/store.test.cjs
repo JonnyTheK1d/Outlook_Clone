@@ -35,3 +35,16 @@ test('demo data can never be persisted together with a real credential', async (
     assert.deepEqual(await readdir(dir), []);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+test('unreferenced account attachments cannot leak into an unencrypted demo envelope', async () => {
+  const dir = await mkdtemp(path.join(tmpdir(), 'postblick-orphans-'));
+  try {
+    const store = new Store(dir);
+    store.queuedFiles = { 'removed-account-message': [{ name:'private.txt',content:Buffer.from('private-account-attachment').toString('base64') }] };
+    await store.save();
+    const envelope = JSON.parse(await readFile(path.join(dir,'mailbox-v2.json'),'utf8'));
+    assert.equal(envelope.encrypted,false);
+    const payload = JSON.parse(envelope.data);
+    assert.deepEqual(payload.queuedFiles,{});
+    assert.equal(envelope.data.includes(Buffer.from('private-account-attachment').toString('base64')),false);
+  } finally { await rm(dir,{recursive:true,force:true}); }
+});
