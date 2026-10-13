@@ -13,7 +13,7 @@ SetCompressor /SOLID lzma
 !define MUI_FINISHPAGE_RUN "$INSTDIR\Postblick.exe"
 !define MUI_FINISHPAGE_RUN_TEXT "Postblick öffnen"
 !insertmacro MUI_PAGE_WELCOME
-!insertmacro MUI_PAGE_LICENSE "${PROJECT_DIR}/LICENSE"
+!insertmacro MUI_PAGE_LICENSE "${PROJECT_DIR}\LICENSE"
 !insertmacro MUI_PAGE_DIRECTORY
 !insertmacro MUI_PAGE_INSTFILES
 !insertmacro MUI_PAGE_FINISH
@@ -58,7 +58,7 @@ Section "Uninstall"
   SetShellVarContext current
   ; Delete exactly the files shipped with this version. Never recursively
   ; delete a user-selected directory or remove the user's mailbox cache.
-  !include "${PROJECT_DIR}/release/installed-files.nsh"
+  !include "${PROJECT_DIR}\release\installed-files.nsh"
   Delete "$INSTDIR\Uninstall Postblick.exe"
   Delete "$SMPROGRAMS\Postblick\Postblick.lnk"
   RMDir "$SMPROGRAMS\Postblick"
