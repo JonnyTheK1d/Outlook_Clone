@@ -1,6 +1,6 @@
 # Sicherheitsmodell der Entwicklungsversion
 
-Postblick 0.1 ist kein Ersatz für Outlooks durch Microsoft geprüfte Sicherheits- und Unternehmensfunktionen. Ein unabhängiges Audit und Windows-Tests mit echten Konten stehen aus.
+Postblick 0.1 ist kein Ersatz für Outlooks durch Microsoft geprüfte Sicherheits- und Unternehmensfunktionen. Installation, App-Start und Deinstallation von Release 0.1.1 wurden auf einem Windows-Runner geprüft; ein unabhängiges Audit und Tests mit echten Konten stehen aus.
 
 ## Umgesetzte Schutzmaßnahmen
 
