@@ -37,6 +37,13 @@ jobs:
             Write-Output "::error title=Windows installer build::$escaped"
             exit $buildExit
           }
+      - name: Verify installed Windows app and Mailto registration
+        shell: pwsh
+        run: |
+          $installer = Get-ChildItem release/*Setup.exe | Select-Object -First 1
+          $checksum = (Get-FileHash -LiteralPath $installer.FullName -Algorithm SHA256).Hash + '  ' + $installer.Name
+          Set-Content -LiteralPath release/SHA256SUMS -Value $checksum
+          ./scripts/test-windows-installer.ps1 -Installer $installer.FullName -Checksums release/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
           name: Postblick-Windows-x64

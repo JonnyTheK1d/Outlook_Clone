@@ -24,6 +24,11 @@ $process = $null
 try {
   $installation = Start-Process -FilePath $installerFile.FullName -ArgumentList @('/S', "/D=$destination") -PassThru -Wait
   if ($installation.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $application)) { throw 'Windows installer failed.' }
+  $registered = (Get-Item -LiteralPath 'HKCU:\Software\RegisteredApplications').GetValue('Postblick')
+  if ($registered -ne 'Software\Postblick\Capabilities') { throw 'Windows Standard Apps registration is missing.' }
+  $mailCommand = (Get-Item -LiteralPath 'HKCU:\Software\Classes\Postblick.Mailto\shell\open\command').GetValue('')
+  $expectedCommand = '"' + $application + '" "%1"'
+  if ($mailCommand -ne $expectedCommand) { throw 'Mailto launch command is incorrect.' }
   $process = Start-Process -FilePath $application -PassThru
   $opened = $false
   for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -44,6 +49,7 @@ try {
   for ($attempt = 0; $attempt -lt 30 -and (Test-Path -LiteralPath $application); $attempt++) { Start-Sleep -Seconds 1 }
   if (Test-Path -LiteralPath $application) { throw 'Uninstallation did not remove the program.' }
   if (-not (Test-Path -LiteralPath $marker)) { throw 'Uninstallation removed a user-owned file.' }
+  if (Test-Path -LiteralPath 'HKCU:\Software\Classes\Postblick.Mailto') { throw 'Uninstallation did not remove the app-owned Mailto registration.' }
   "Windows installation, desktop startup and uninstallation passed." | Tee-Object -Variable result
   if ($env:GITHUB_STEP_SUMMARY) { $result | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8 }
 } finally {
