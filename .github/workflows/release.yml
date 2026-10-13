@@ -1,0 +1,40 @@
+name: Publish Windows release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          lfs: true
+      - name: Check release version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (Get-Content package.json | ConvertFrom-Json).version
+          if ($env:RELEASE_TAG -ne "v$version") { throw 'Release tag does not match the app version.' }
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+      - name: Verify installer on Windows
+        shell: pwsh
+        run: |
+          ./scripts/test-windows-installer.ps1 -Installer "installers/Postblick-${{ steps.version.outputs.version }}-Windows-x64-Setup.exe" -Checksums installers/SHA256SUMS
+      - name: Publish complete installer as release asset
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create $env:RELEASE_TAG "installers/Postblick-$env:RELEASE_VERSION-Windows-x64-Setup.exe" "installers/SHA256SUMS" --verify-tag --title "Postblick $env:RELEASE_VERSION für Windows" --notes-file docs/release-notes.md
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

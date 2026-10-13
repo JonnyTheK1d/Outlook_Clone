@@ -1,7 +1,7 @@
 {
   "name": "postblick",
-  "version": "0.1.0",
-  "description": "Postblick \u2013 Mail, Kalender und Kontakte f\u00fcr Windows",
+  "version": "0.1.1",
+  "description": "Postblick – Mail, Kalender und Kontakte für Windows",
   "author": "Postblick",
   "license": "MIT",
   "private": true,

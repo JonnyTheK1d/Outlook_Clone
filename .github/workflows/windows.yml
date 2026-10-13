@@ -2,6 +2,7 @@ name: Windows build
 on:
   push:
     branches: [main]
+    paths-ignore: ['installers/**', 'docs/**', 'README.md', '.gitattributes']
   pull_request:
   workflow_dispatch:
 permissions:
@@ -10,15 +11,27 @@ jobs:
   windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24.19.0'
           cache: npm
       - run: npm ci --no-audit --no-fund
       - run: node node_modules/electron/install.js
       - run: npm test
-      - run: npm run dist:win
+      - name: Build Windows installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          npm.cmd run dist:win 2>&1 | Tee-Object -FilePath build-win.log
+          $buildExit = $LASTEXITCODE
+          if ($buildExit -ne 0) {
+            '## Windows build failure' | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            '~~~text' | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            Get-Content build-win.log -Tail 60 | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            '~~~' | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            exit $buildExit
+          }
       - uses: actions/upload-artifact@v4
         with:
           name: Postblick-Windows-x64
