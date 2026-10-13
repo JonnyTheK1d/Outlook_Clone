@@ -8,7 +8,7 @@ Ein eigenständiger, deutschsprachiger Desktop-Mailclient mit einer an Outlook o
 
 **[Windows-Installer 0.2.0 herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.2.0/Postblick-0.2.0-Windows-x64-Setup.exe)** · [Release und Prüfsumme](https://github.com/JonnyTheK1d/Outlook_Clone/releases/tag/v0.2.0).
 
-Lade die EXE unter **Assets** des Releases herunter. Die vollständige Datei hat ungefähr 113 MB. **„Source code (zip)“ und „Download ZIP“ sind keine Installer.** Repository-Archive können anstelle großer Dateien nur kleine Git-LFS-Verweise enthalten. Eine EXE mit wenigen Bytes oder KB kann Windows nicht ausführen; lösche diesen Download und lade das vollständige Release-Asset.
+Lade die EXE unter **Assets** des Releases herunter. Die vollständige Datei hat ungefähr 114 MiB (119 MB). **„Source code (zip)“ und „Download ZIP“ sind keine Installer.** Repository-Archive können anstelle großer Dateien nur kleine Git-LFS-Verweise enthalten. Eine EXE mit wenigen Bytes oder KB kann Windows nicht ausführen; lösche diesen Download und lade das vollständige Release-Asset.
 
 Als Git-LFS-Kopie liegt die EXE unter [`installers/Postblick-0.2.0-Windows-x64-Setup.exe`](installers/Postblick-0.2.0-Windows-x64-Setup.exe), mit [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`). Der Release-Download benötigt keinen Git-LFS-Client.
 
