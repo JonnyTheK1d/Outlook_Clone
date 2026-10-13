@@ -6,9 +6,13 @@ Ein eigenständiger, deutschsprachiger Desktop-Mailclient mit einer an Outlook o
 
 ## Windows installieren
 
-Der fertige Installer ist im Repository unter [`installers/Postblick-0.1.0-Windows-x64-Setup.exe`](installers/Postblick-0.1.0-Windows-x64-Setup.exe) über **Git LFS** gespeichert. [Installer direkt herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/raw/refs/heads/main/installers/Postblick-0.1.0-Windows-x64-Setup.exe). Die SHA-256-Prüfsumme liegt in [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Installer-Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`); der Download über GitHub benötigt keinen Git-LFS-Client.
+**[Windows-Installer 0.1.1 herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.1.1/Postblick-0.1.1-Windows-x64-Setup.exe)** · [Release und Prüfsumme](https://github.com/JonnyTheK1d/Outlook_Clone/releases/tag/v0.1.1).
 
-Der Installer liegt nach dem Build unter `release/Postblick-0.1.0-Windows-x64-Setup.exe`. Unterstützt werden Windows 10/11 x64. Starte den Installer, wähle einen Installationsort und öffne Postblick. Die App beginnt mit eindeutig gekennzeichneten lokalen Demo-Daten. Im Demo-Modus wird keine E-Mail verschickt.
+Lade die EXE unter **Assets** des Releases herunter. Die vollständige Datei hat ungefähr 113 MB. **„Source code (zip)“ und „Download ZIP“ sind keine Installer.** Repository-Archive können anstelle großer Dateien nur kleine Git-LFS-Verweise enthalten. Eine EXE mit wenigen Bytes oder KB kann Windows nicht ausführen; lösche diesen Download und lade das vollständige Release-Asset.
+
+Als Git-LFS-Kopie liegt die EXE unter [`installers/Postblick-0.1.1-Windows-x64-Setup.exe`](installers/Postblick-0.1.1-Windows-x64-Setup.exe), mit [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`). Der Release-Download benötigt keinen Git-LFS-Client.
+
+Der Installer liegt nach dem Build unter `release/Postblick-0.1.1-Windows-x64-Setup.exe`. Unterstützt werden Windows 10/11 x64. Starte den Installer, wähle einen Installationsort und öffne Postblick. Die App beginnt mit eindeutig gekennzeichneten lokalen Demo-Daten. Im Demo-Modus wird keine E-Mail verschickt.
 
 Der Installer ist **nicht digital signiert**; Windows kann deshalb eine SmartScreen-Warnung anzeigen. Für eine öffentliche Veröffentlichung sind ein Code-Signing-Zertifikat, ein Sicherheitstest und Tests auf echten Windows-Systemen erforderlich. Zertifikats- oder Sicherheitswarnungen sollten nicht pauschal abgeschaltet werden.
 
@@ -74,7 +78,7 @@ Die Browseransicht `npm run dev:web` ist ausschließlich eine lokale Demo und ha
 
 Details und Grenzen: [SECURITY.md](SECURITY.md). Es gibt bisher kein unabhängiges Sicherheitsaudit und keine Zusicherung eines mit Outlook vergleichbaren Sicherheitsniveaus. Bitte nutze zunächst ein Testkonto.
 
-Prüfergebnisse: [docs/validation.md](docs/validation.md). Ein Windows-Build-Workflow mit Installer-Artefakt liegt unter `.github/workflows/windows.yml`; er läuft erst nach dem Übertragen des Projekts auf GitHub.
+Prüfergebnisse: [docs/validation.md](docs/validation.md). Der Windows-Build-Workflow liegt unter `.github/workflows/windows.yml`. `.github/workflows/release.yml` prüft bei einem Versionstag den bereitgestellten Installer auf Windows und veröffentlicht danach die vollständige EXE sowie Prüfsummen als Release-Assets.
 
 ## Architektur
 
