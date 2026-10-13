@@ -1,8 +1,8 @@
-# Funktionsvergleich mit Outlook – Postblick 0.2.0
+# Funktionsvergleich mit Outlook – Postblick 0.2.1
 
 „Implementiert“ bezeichnet den vorhandenen Code, nicht eine Prüfung mit echten Konten. Microsoft- und IMAP-Testkonten fehlen. Eine vollständige Outlook-Parität und ein vergleichbares Sicherheitsniveau sind nicht nachgewiesen.
 
-| Bereich | Implementiert in 0.2.0 | Noch offen |
+| Bereich | Implementiert in 0.2.1 | Noch offen |
 | --- | --- | --- |
 | Konten | Verschlüsselter Mehrkontenspeicher, Kontowechsel, gemeinsamer Posteingang aus dem Cache | OAuth anderer Anbieter; Herausgeber-Client-ID für Microsoft |
 | Serverkonfiguration | Vorgaben für Gmail, GMX, WEB.DE, Yahoo, iCloud | Allgemeines Autodiscover; getrennte SMTP-Zugangsdaten |
@@ -34,7 +34,7 @@ Der Benutzer hat bestätigt, dass Microsoft-Herausgeberregistrierung und Code-Si
 
 Konto-, Tenant-, Zustellungs- und Einladungstests benötigen eigene Testkonten, gegebenenfalls Lizenzen und Administratorzustimmung. Zugangsdaten und private Zertifikate gehören nicht in Git oder den Chat.
 
-Diese Voraussetzungen erklären **nicht alle offenen Zeilen**. PST/MSG, S/MIME, Add-ins, Exchange-Delegation und weitere Komfortfunktionen benötigen zusätzliche Implementierung. 0.2.0 ist ein großer Ausbau der Entwicklungsversion, keine abgeschlossene Umsetzung der gesamten angeforderten Liste.
+Diese Voraussetzungen erklären **nicht alle offenen Zeilen**. PST/MSG, S/MIME, Add-ins, Exchange-Delegation und weitere Komfortfunktionen benötigen zusätzliche Implementierung. 0.2.1 ist ein großer Ausbau der Entwicklungsversion, keine abgeschlossene Umsetzung der gesamten angeforderten Liste.
 
 ## Betriebsgrenzen
 

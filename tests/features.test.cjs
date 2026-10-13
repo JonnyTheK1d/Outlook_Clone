@@ -62,7 +62,7 @@ test('Graph pagination never sends bearer credentials to a foreign nextLink',asy
 test('Graph paging loads more than 100 messages without duplicates and preserves HTML separately',async()=>{
   let calls=0;
   global.fetch=async()=>{calls++;return Response.json({value:Array.from({length:calls===1?100:3},(_,i)=>({id:calls+':'+i,body:{contentType:'html',content:'<b>Hallo</b>'},from:{emailAddress:{address:'a@example.com'}},receivedDateTime:'2026-10-13T10:00:00Z'})),...(calls===1?{'@odata.nextLink':'https://graph.microsoft.com/v1.0/me/mailFolders/inbox/messages?$skip=100'}:{})});};
-  const mails=await new MicrosoftProvider(credentials,async()=>{}).list('inbox');assert.equal(mails.length,103);assert.equal(mails[0].html,'<b>Hallo</b>');
+  const mails=await new MicrosoftProvider(credentials,async()=>{}).list('inbox');assert.equal(mails.length,103);assert.equal(mails[0].html,'<b>Hallo</b>');assert.equal(mails[0].body,'Hallo');
 });
 test('Graph reply uses createReply and Bcc does not leak into To',async()=>{
   const calls=[];

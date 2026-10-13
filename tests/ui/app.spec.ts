@@ -157,3 +157,20 @@ test('separate calendars can be created and hidden without deleting events',asyn
   await page.getByRole('checkbox',{name:'Arbeitskalender',exact:true}).check();
   await expect(page.locator('.calendar-event').filter({hasText:'Separater Termin'})).toHaveCount(1);
 });
+test('shared IMAP identifiers remain separate across accounts in the unified inbox',async({page})=>{
+  await page.addInitScript(()=>{
+    const make=(id,email,sender)=>({accountId:id,mode:'imap',email,name:sender,theme:'light',updatedAt:null,mails:[{id:'inbox:1:1',folder:'inbox',sender,address:email,to:'receiver@example.com',subject:'Nachricht '+sender,body:'Hallo '+sender,date:'2026-10-13T10:00:00Z',read:true,flagged:false,attachments:[]}],events:[],contacts:[],tasks:[],folders:[],outbox:[],rules:[]});
+    const boxes={one:make('one','one@example.com','Konto Eins'),two:make('two','two@example.com','Konto Zwei')};let active='one';
+    const view=()=>({...boxes[active],accounts:Object.entries(boxes).map(([id,b])=>({id,email:b.email,name:b.name,mode:b.mode})),unifiedMails:Object.entries(boxes).flatMap(([id,b])=>b.mails.map(m=>({...m,accountId:id})))});
+    window.postblick={state:async()=>view(),capabilities:async()=>({desktop:false,secureStorage:false,platform:'browser'}),manage:async command=>{if(command.kind==='account')active=command.id;return view();},mailAction:async()=>view()};
+  });
+  await page.reload();
+  await page.getByRole('button',{name:'Gemeinsamer Posteingang',exact:true}).click();
+  await expect(page.locator('.message-item')).toHaveCount(2);
+  await page.locator('.message-item').filter({hasText:'Nachricht Konto Zwei'}).click();
+  await expect(page.locator('.reading-heading')).toContainText('Nachricht Konto Zwei');
+  await expect(page.locator('.message-item.selected')).toHaveCount(1);
+  await page.locator('.message-item').filter({hasText:'Nachricht Konto Eins'}).click();
+  await expect(page.locator('.reading-heading')).toContainText('Nachricht Konto Eins');
+  await expect(page.locator('.message-item.selected')).toHaveCount(1);
+});

@@ -63,15 +63,16 @@ export class MicrosoftProvider implements Provider {
   }
   async profile() { const result = await this.request('?$select=displayName,mail,userPrincipalName'); return { email: result.mail || result.userPrincipalName, name: result.displayName }; }
   async list(folder: Folder, query?: string): Promise<Mail[]> {
-    const items = await this.all('/mailFolders/' + segment(graphFolder(folder)) + '/messages?$top=100&' + (query ? '$search=' + segment(JSON.stringify(query)) + '&' : '$orderby=receivedDateTime%20desc&') + '$select=id,subject,body,from,toRecipients,ccRecipients,bccRecipients,replyTo,internetMessageId,conversationId,categories,importance,receivedDateTime,isRead,flag,hasAttachments');
+    const items = await this.all('/mailFolders/' + segment(graphFolder(folder)) + '/messages?$top=100&' + (query ? '$search=' + segment(JSON.stringify(query)) + '&' : '$orderby=receivedDateTime%20desc&') + '$select=id,subject,body,from,toRecipients,ccRecipients,bccRecipients,replyTo,internetMessageId,conversationId,categories,importance,receivedDateTime,createdDateTime,isRead,flag,hasAttachments');
     const result: Mail[] = [];
     // Bound attachment requests, rather than flooding Graph for large mailboxes.
     for (const item of items) {
       const html = item.body?.contentType?.toLowerCase() === 'html' ? item.body.content : undefined;
+      const body = html ? (await simpleParser('MIME-Version: 1.0\r\nContent-Type: text/html; charset=utf-8\r\n\r\n'+html,{skipTextToHtml:true,skipImageLinks:true})).text || '' : item.body?.content || '';
       result.push({
         id: item.id, folder, sender: item.from?.emailAddress?.name || item.from?.emailAddress?.address || 'Unbekannt', address: item.from?.emailAddress?.address || '',
         to: graphAddresses(item.toRecipients), cc: graphAddresses(item.ccRecipients), bcc: graphAddresses(item.bccRecipients), replyTo: graphAddresses(item.replyTo),
-        subject: item.subject || '(Kein Betreff)', body: html ? html.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ') : item.body?.content || '', html, date: item.receivedDateTime,
+        subject: item.subject || '(Kein Betreff)', body, html, date: item.receivedDateTime || item.createdDateTime || new Date().toISOString(),
         read: item.isRead, flagged: item.flag?.flagStatus === 'flagged', categories: item.categories || [], conversationId: item.conversationId, messageId: item.internetMessageId, importance: item.importance,
         attachments: item.hasAttachments ? (await this.all('/messages/' + segment(item.id) + '/attachments?$select=id,name,size,isInline')).filter((a: GraphItem) => !a.isInline && a['@odata.type'] === '#microsoft.graph.fileAttachment').map((a: GraphItem): Attachment => ({ id: a.id, name: a.name, size: a.size })) : []
       });
@@ -108,7 +109,7 @@ export class MicrosoftProvider implements Provider {
     return { subject: message.subject, body: { contentType: message.html ? 'HTML' : 'Text', content: message.html || message.body }, toRecipients: recipientObjects(message.to), ccRecipients: recipientObjects(message.cc), bccRecipients: recipientObjects(message.bcc || ''), importance: message.importance || 'normal', isReadReceiptRequested: !!message.readReceipt, isDeliveryReceiptRequested: !!message.deliveryReceipt, attachments: files.map(file => ({ '@odata.type': '#microsoft.graph.fileAttachment', name: file.name, contentBytes: file.content.toString('base64') })) };
   }
   async send(message: Outgoing, files: FileAttachment[]) {
-    if (message.draftId || message.replyId || message.forwardId || files.some(f => f.content.length >= 3 * 1024 * 1024)) {
+    if (message.draftId || message.replyId || message.forwardId || Buffer.byteLength(JSON.stringify(this.payload(message,files)), 'utf8') >= 3800000) {
       const id = await this.draft(message, files);
       await this.request('/messages/' + segment(id) + '/send', 'POST');
     } else await this.request('/sendMail', 'POST', { message: this.payload(message, files), saveToSentItems: true });
@@ -124,7 +125,7 @@ export class MicrosoftProvider implements Provider {
     else await this.request('/messages/' + segment(id), 'PATCH', fields);
     if (message.retainedAttachments) for (const a of await this.all('/messages/' + segment(id!) + '/attachments')) if (!message.retainedAttachments.includes(a.id)) await this.request('/messages/' + segment(id!) + '/attachments/' + segment(a.id), 'DELETE');
     for (const file of files) {
-      if (file.content.length < 3 * 1024 * 1024) await this.request('/messages/' + segment(id!) + '/attachments', 'POST', this.payload(message, [file]).attachments[0]);
+      if (file.content.length < 3000000) await this.request('/messages/' + segment(id!) + '/attachments', 'POST', this.payload(message, [file]).attachments[0]);
       else {
         const upload = await this.request('/messages/' + segment(id!) + '/attachments/createUploadSession', 'POST', { AttachmentItem: { attachmentType: 'file', name: file.name, size: file.content.length } });
         const url = new URL(upload.uploadUrl);

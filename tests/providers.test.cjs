@@ -58,3 +58,12 @@ test('SMTP acceptance remains successful if subsequent draft cleanup fails', asy
   await provider.send({ to: 'b@example.com', cc: '', subject: 'Test', body: 'Hi', attachments: [], draftId: 'drafts:1:2' }, [{ name: 'new.txt', content: Buffer.from('new') }]);
   assert.equal(sent, 1);
 });
+test('Graph batches small attachments through a draft instead of exceeding sendMail request size',async()=>{
+  const calls=[];
+  global.fetch=async(url,options)=>{calls.push({url,body:options.body?JSON.parse(options.body):undefined});return url.endsWith('/messages')?Response.json({id:'draft'}):new Response(null,{status:202});};
+  await new MicrosoftProvider(credentials,async()=>{}).send({to:'person@example.com',cc:'',subject:'Files',body:'Hi',attachments:[]},Array.from({length:3},(_,i)=>({name:'file-'+i,content:Buffer.alloc(1024*1024)})));
+  assert.equal(calls[0].url,'https://graph.microsoft.com/v1.0/me/messages');
+  assert.equal(calls.filter(c=>c.url.endsWith('/attachments')).length,3);
+  assert.ok(calls.at(-1).url.endsWith('/draft/send'));
+  assert.ok(calls.every(c=>!c.url.endsWith('/sendMail')));
+});
