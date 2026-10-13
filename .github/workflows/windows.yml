@@ -30,6 +30,9 @@ jobs:
             '~~~text' | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             Get-Content build-win.log -Tail 60 | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
             '~~~' | Out-File $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
+            $tail = (Get-Content build-win.log -Tail 20) -join [Environment]::NewLine
+            $escaped = $tail.Replace('%', '%25').Replace([string][char]13, '%0D').Replace([string][char]10, '%0A')
+            Write-Output "::error title=Windows installer build::$escaped"
             exit $buildExit
           }
       - uses: actions/upload-artifact@v4
