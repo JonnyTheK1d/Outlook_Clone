@@ -1,0 +1,33 @@
+import type { Bridge, State } from '../shared/types';
+import { createDemo } from '../shared/demo';
+declare global { interface Window { postblick?: Bridge } }
+// Browser preview only: isolated demo data. Native account APIs are never emulated.
+const key = 'postblick-browser-demo-v1';
+function load(): State { try { const saved = localStorage.getItem(key); if (saved) { const data = JSON.parse(saved); if (data.mode === 'demo') return data; } } catch {} return createDemo(); }
+let demo = load();
+const save = () => { localStorage.setItem(key, JSON.stringify(demo)); return Promise.resolve(structuredClone(demo)); };
+const nativeRequired = async (): Promise<never> => { throw new Error('Diese Funktion benötigt die installierte Desktop-App. Die Browseransicht unterstützt nur lokale Demo-Daten.'); };
+const browser: Bridge = {
+  state: async () => structuredClone(demo), capabilities: async () => ({ desktop: false, secureStorage: false, platform: 'browser' }),
+  sync: async () => { demo.updatedAt = new Date().toISOString(); return save(); },
+  mailAction: async action => {
+    const mail = demo.mails.find(m => m.id === action.id); if (!mail) throw new Error('Nachricht nicht gefunden.');
+    if (action.kind === 'read') mail.read = action.value;
+    if (action.kind === 'flag') mail.flagged = action.value;
+    if (action.kind === 'move') mail.folder = action.folder;
+    if (action.kind === 'delete') demo.mails = demo.mails.filter(m => m.id !== action.id);
+    return save();
+  },
+  send: async message => { demo.mails = demo.mails.filter(m => m.id !== message.draftId); demo.mails.unshift({ id: crypto.randomUUID(), folder: 'sent', sender: demo.name, address: demo.email, to: message.to, cc: message.cc, subject: message.subject, body: message.body, date: new Date().toISOString(), read: true, flagged: false, attachments: message.attachments }); return save(); },
+  saveDraft: async message => { demo.mails = demo.mails.filter(m => m.id !== message.draftId); demo.mails.unshift({ id: message.draftId || crypto.randomUUID(), folder: 'drafts', sender: demo.name, address: demo.email, to: message.to, cc: message.cc, subject: message.subject, body: message.body, date: new Date().toISOString(), read: true, flagged: false, attachments: [] }); return save(); },
+  pickAttachments: nativeRequired, downloadAttachment: nativeRequired, connectMicrosoft: nativeRequired, connectImap: nativeRequired,
+  disconnect: async () => { demo = createDemo(); return save(); }, demo: async () => { demo = createDemo(); return save(); },
+  saveEvent: async event => { demo.events = [...demo.events.filter(e => e.id !== event.id), { ...event, id: event.id || crypto.randomUUID() }]; return save(); },
+  deleteEvent: async id => { demo.events = demo.events.filter(e => e.id !== id); return save(); },
+  saveContact: async contact => { demo.contacts = [...demo.contacts.filter(c => c.id !== contact.id), { ...contact, id: contact.id || crypto.randomUUID() }]; return save(); },
+  deleteContact: async id => { demo.contacts = demo.contacts.filter(c => c.id !== id); return save(); },
+  saveTask: async task => { demo.tasks = [...demo.tasks.filter(t => t.id !== task.id), { ...task, id: task.id || crypto.randomUUID() }]; return save(); },
+  deleteTask: async id => { demo.tasks = demo.tasks.filter(t => t.id !== id); return save(); },
+  theme: async theme => { demo.theme = theme; return save(); }
+};
+export const api = window.postblick || browser;

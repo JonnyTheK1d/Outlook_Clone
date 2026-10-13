@@ -1,0 +1,89 @@
+{
+  "name": "postblick",
+  "version": "0.1.0",
+  "description": "Postblick \u2013 Mail, Kalender und Kontakte f\u00fcr Windows",
+  "author": "Postblick",
+  "license": "MIT",
+  "private": true,
+  "main": "dist-electron/electron/main.js",
+  "scripts": {
+    "dev": "npm run build:desktop && concurrently -k \"vite --host 127.0.0.1\" \"wait-on http://127.0.0.1:5173 && electron . --dev\"",
+    "dev:web": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.electron.json --noEmit",
+    "build:desktop": "tsc -p tsconfig.electron.json",
+    "build": "npm run typecheck && vite build && npm run build:desktop",
+    "test": "npm run build:desktop && node --test tests/*.test.cjs",
+    "test:ui": "playwright test",
+    "dist:win": "npm run build && electron-builder --win nsis --x64",
+    "dist:linux": "npm run build && electron-builder --linux dir --x64",
+    "test:native": "npm run build && node --test tests/native.cjs"
+  },
+  "dependencies": {
+    "imapflow": "1.7.8",
+    "lucide-react": "0.577.0",
+    "mailparser": "3.9.38",
+    "nodemailer": "10.1.0",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/mailparser": "3.4.6",
+    "@types/node": "24.10.13",
+    "@types/nodemailer": "7.0.11",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.1.2",
+    "concurrently": "9.2.5",
+    "electron": "44.7.0",
+    "electron-builder": "26.15.3",
+    "typescript": "5.9.3",
+    "vite": "8.3.4",
+    "wait-on": "9.0.4"
+  },
+  "build": {
+    "appId": "de.postblick.desktop",
+    "productName": "Postblick",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": "nsis",
+      "artifactName": "Postblick-${version}-Windows-${arch}-Setup.${ext}",
+      "signExecutable": false,
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "script": "build/installer.nsi",
+      "installerLanguages": [
+        "de_DE"
+      ]
+    },
+    "linux": {
+      "target": "dir",
+      "category": "Office"
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    },
+    "afterPack": "build/after-pack.cjs"
+  },
+  "overrides": {
+    "global-agent": "4.1.3"
+  }
+}
