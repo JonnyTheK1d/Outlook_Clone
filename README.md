@@ -6,35 +6,23 @@ Ein eigenständiger, deutschsprachiger Desktop-Mailclient mit einer an Outlook o
 
 ## Windows installieren
 
-**[Windows-Installer 0.1.1 herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.1.1/Postblick-0.1.1-Windows-x64-Setup.exe)** · [Release und Prüfsumme](https://github.com/JonnyTheK1d/Outlook_Clone/releases/tag/v0.1.1).
+**[Windows-Installer 0.2.0 herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.2.0/Postblick-0.2.0-Windows-x64-Setup.exe)** · [Release und Prüfsumme](https://github.com/JonnyTheK1d/Outlook_Clone/releases/tag/v0.2.0).
 
 Lade die EXE unter **Assets** des Releases herunter. Die vollständige Datei hat ungefähr 113 MB. **„Source code (zip)“ und „Download ZIP“ sind keine Installer.** Repository-Archive können anstelle großer Dateien nur kleine Git-LFS-Verweise enthalten. Eine EXE mit wenigen Bytes oder KB kann Windows nicht ausführen; lösche diesen Download und lade das vollständige Release-Asset.
 
-Als Git-LFS-Kopie liegt die EXE unter [`installers/Postblick-0.1.1-Windows-x64-Setup.exe`](installers/Postblick-0.1.1-Windows-x64-Setup.exe), mit [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`). Der Release-Download benötigt keinen Git-LFS-Client.
+Als Git-LFS-Kopie liegt die EXE unter [`installers/Postblick-0.2.0-Windows-x64-Setup.exe`](installers/Postblick-0.2.0-Windows-x64-Setup.exe), mit [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`). Der Release-Download benötigt keinen Git-LFS-Client.
 
-Der Installer liegt nach dem Build unter `release/Postblick-0.1.1-Windows-x64-Setup.exe`. Unterstützt werden Windows 10/11 x64. Starte den Installer, wähle einen Installationsort und öffne Postblick. Die App beginnt mit eindeutig gekennzeichneten lokalen Demo-Daten. Im Demo-Modus wird keine E-Mail verschickt.
+Der Installer liegt nach dem Build unter `release/Postblick-0.2.0-Windows-x64-Setup.exe`. Unterstützt werden Windows 10/11 x64. Starte den Installer, wähle einen Installationsort und öffne Postblick. Die App beginnt mit eindeutig gekennzeichneten lokalen Demo-Daten. Im Demo-Modus wird keine E-Mail verschickt.
 
-Der Installer ist **nicht digital signiert**; Windows kann deshalb eine SmartScreen-Warnung anzeigen. Für eine öffentliche Veröffentlichung sind ein Code-Signing-Zertifikat, ein Sicherheitstest und Tests auf echten Windows-Systemen erforderlich. Zertifikats- oder Sicherheitswarnungen sollten nicht pauschal abgeschaltet werden.
+Der Installer ist **nicht digital signiert**; Windows kann deshalb eine SmartScreen-Warnung anzeigen. Herausgeberzertifikat und unabhängiger Sicherheitstest fehlen. Windows-Installation, Start und Deinstallation werden im Release-Workflow geprüft; echte Kontoabläufe benötigen zusätzliche Tests. Zertifikats- oder Sicherheitswarnungen sollten nicht pauschal abgeschaltet werden.
 
-## Funktionen
+## Funktionen und verbleibende Arbeit
 
-| Bereich | Implementiert |
-| --- | --- |
-| Oberfläche | App-Leiste, Ordner, Nachrichtenliste, Lesebereich, Mein Tag, helle/dunkle Darstellung |
-| E-Mail | Lesen, Suche im geladenen Ordner, gelesen/ungelesen, Flaggen, Archiv, Junk, Papierkorb, endgültiges Löschen mit Rückfrage |
-| Schreiben | Text-E-Mails, An/Cc, Antworten/Allen antworten/Weiterleiten, Entwürfe, Anhänge auswählen und speichern |
-| Microsoft | OAuth mit PKCE, Graph-Mail, Kalender und Kontakte |
-| IMAP/SMTP | IMAPS 993, SMTPS 465 oder erzwungenes STARTTLS 587; App-Passwort |
-| Kalender | Monatsansicht, Termine erstellen/bearbeiten/löschen |
-| Kontakte | Adressbuch, Kontakte erstellen/bearbeiten/löschen, Nachricht an Kontakt |
-| Aufgaben | Lokale Aufgaben mit Fälligkeitsdatum, Erledigen/Öffnen und Löschen |
-| Speicherung | Persistente Demo; verschlüsselter Cache und Zugangsdaten für echte Konten |
+0.2.0 erweitert Postblick: mehrere Konten, Hintergrundabruf, eigene Ordner, Kategorien, Mehrfachaktionen, Bcc, Signaturen, Vorlagen, bereinigtes HTML, formatierte Nachrichten, automatische lokale Entwürfe, Versandwarteschlange, zusätzliche Kalender, Serien, Erinnerungen, Microsoft To Do und Datenexport.
 
-Ein aktives Konto wird unterstützt. Bei IMAP sind Kalender und Kontakte lokal; Aufgaben sind für beide Kontotypen lokal. Ordner und Suche umfassen die neuesten **100 Nachrichten je geöffnetem Standardordner**. Microsoft-Kalender lädt maximal 100 Einträge für ±90 Tage, Kontakte maximal 100 Einträge. Synchronisierung erfolgt beim Verbinden, Ordnerwechsel und per Aktualisieren-Schaltfläche; kein Hintergrund-Push. IMAP-Standardordner müssen über SPECIAL-USE markiert sein. SMTP-Annahme ist keine Zustellbestätigung; eine Kopie im Gesendet-Ordner hängt bei IMAP/SMTP vom Anbieter ab. Anhänge werden bei Weiterleitungen nicht automatisch übernommen.
+**Die gesamte angeforderte Outlook-Funktionsliste ist noch nicht umgesetzt.** [docs/feature-status.md](docs/feature-status.md) unterscheidet vorhandenen Code, Grenzen, fehlende Implementierung und externe Voraussetzungen.
 
-Neue Anhänge: insgesamt 2 MB, maximal 10 Dateien. Downloads: maximal 20 MB. Größere IMAP-Nachrichten werden nicht vollständig eingelesen. Dateianhänge werden nicht automatisch geöffnet. Bearbeitete Entwürfe behalten bestehende Anhänge; neue Dateien werden ergänzt. Das Entfernen bestehender Server-Anhänge ist noch nicht vorgesehen.
-
-Noch nicht umgesetzt: mehrere Konten gleichzeitig, benutzerdefinierte Ordner, serverweite Suche, Regeln, Exchange-Freigaben, Besprechungseinladungen/Serientermine, Microsoft To Do, S/MIME/PGP, Spam-/Malware-Erkennung, Offline-Sendequeue und automatische Updates. Dies ist eine funktionsfähige erste Version, keine vollständige Outlook-Parität.
+Echte Kontoabläufe sind ohne Testkonten nicht Ende-zu-Ende geprüft. Ein mit Outlook vergleichbares Sicherheitsniveau ist nicht nachgewiesen. Der gemeinsame Posteingang enthält geladene Daten; Versand läuft über das aktive Konto. Die Warteschlange benötigt eine geöffnete App und wiederholt keine unklaren Versandversuche.
 
 ## Microsoft 365 / Outlook.com einrichten
 
@@ -42,7 +30,7 @@ Die frühe Entwicklungsversion benötigt eine eigene **öffentliche Client-ID**,
 
 1. In Microsoft Entra eine App registrieren. Unterstützte Konten: Konten in beliebigen Organisationsverzeichnissen **und persönliche Microsoft-Konten**.
 2. Unter Authentifizierung die Plattform **Mobile und Desktopanwendungen** hinzufügen. Redirect-URI: `http://localhost/callback`. Postblick wählt für jede Anmeldung einen freien lokalen Port; Microsoft erlaubt dynamische Ports bei localhost-Redirects öffentlicher Desktop-Clients. Falls erforderlich öffentliche Clientflows aktivieren.
-3. Delegierte Microsoft-Graph-Berechtigungen konfigurieren: `User.Read`, `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `Contacts.ReadWrite`. Zusätzlich werden `openid`, `profile`, `offline_access` bei der Anmeldung angefordert. Je nach Organisation ist die Zustimmung eines Administrators nötig.
+3. Delegierte Microsoft-Graph-Berechtigungen konfigurieren: `User.Read`, `Mail.ReadWrite`, `Mail.Send`, `Calendars.ReadWrite`, `Contacts.ReadWrite`, `Tasks.ReadWrite`, `MailboxSettings.ReadWrite`. Zusätzlich werden `openid`, `profile`, `offline_access` bei der Anmeldung angefordert. Je nach Organisation ist die Zustimmung eines Administrators nötig.
 4. In Postblick unter **Einstellungen → Konto → Microsoft** die Anwendungs-ID eingeben und anmelden. Der Systembrowser zeigt die Microsoft-Anmeldung und Berechtigungen.
 
 Postblick verarbeitet dein Microsoft-Passwort nicht. Der lokale Callback wird mit zufälligem State und PKCE geschützt und nach drei Minuten geschlossen. Refresh-Token werden verschlüsselt gespeichert. Beim Trennen entfernt Postblick seinen lokalen Cache und die lokalen Zugangsdaten; eine bereits erteilte Microsoft-App-Zustimmung kannst du zusätzlich im Microsoft-Konto widerrufen. Alte Daten können in Betriebssystem-Backups erhalten bleiben.

@@ -9,7 +9,7 @@ Module._load = originalLoad;
 const originalFetch = global.fetch;
 after(() => { global.fetch = originalFetch; });
 const credentials = { type: 'microsoft', clientId: '12345678-1234-1234-1234-123456789abc', accessToken: 'test-token', refreshToken: 'test-refresh', expiresAt: Date.now() + 3600000 };
-test('Graph mail mapping requests text bodies and preserves recipients and attachment metadata', async () => {
+test('Graph mail mapping requests HTML bodies and preserves recipients and attachment metadata', async () => {
   const requests = [];
   global.fetch = async (url, options) => {
     requests.push({ url, options });
@@ -19,7 +19,7 @@ test('Graph mail mapping requests text bodies and preserves recipients and attac
   const provider = new MicrosoftProvider(credentials, async () => {});
   const [mail] = await provider.list('inbox');
   assert.equal(mail.cc, 'cc@example.com'); assert.equal(mail.attachments[0].name, 'note.txt'); assert.equal(mail.flagged, true);
-  assert.ok(requests.every(r => r.options.headers.Prefer.includes('body-content-type="text"')));
+  assert.ok(requests.every(r => r.options.headers.Prefer.includes('body-content-type="html"')));
   assert.ok(requests[1].url.includes('id%2Fwith%20slash'));
   assert.ok(requests.every(r => r.options.redirect === 'error'));
 });
@@ -54,6 +54,7 @@ test('SMTP acceptance remains successful if subsequent draft cleanup fails', asy
   provider.draftFiles = async () => [{ name: 'existing.txt', content: Buffer.from('old') }];
   provider.transport = () => ({ sendMail: async mail => { sent++; assert.equal(mail.attachments.length, 2); assert.equal(mail.disableFileAccess, true); assert.equal(mail.disableUrlAccess, true); } });
   provider.action = async () => { throw new Error('Cleanup failed'); };
+  provider.session = async () => { throw new Error('No append connection'); };
   await provider.send({ to: 'b@example.com', cc: '', subject: 'Test', body: 'Hi', attachments: [], draftId: 'drafts:1:2' }, [{ name: 'new.txt', content: Buffer.from('new') }]);
   assert.equal(sent, 1);
 });

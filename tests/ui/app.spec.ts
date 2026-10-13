@@ -22,7 +22,7 @@ test('mail workflow: search, flag, archive, trash and persist', async ({ page })
 });
 test('compose, save draft, reopen and send locally', async ({ page }) => {
   await page.getByRole('button', { name: 'Neue E-Mail', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Empfänger', exact: true }).fill('test@example.com');
+  await page.getByRole('combobox', { name: 'Empfänger', exact: true }).fill('test@example.com');
   await page.getByRole('textbox', { name: 'Betreff', exact: true }).fill('Mein erster Entwurf');
   await page.getByRole('textbox', { name: 'Nachrichtentext' }).fill('Hallo aus Postblick!');
   await page.getByRole('button', { name: 'Entwurf speichern' }).click();
@@ -69,7 +69,7 @@ test('browser cannot connect real accounts; theme and keyboard shortcuts work', 
 });
 test('untrusted email content remains text and remote images are not fetched', async ({ page }) => {
   await page.getByRole('button', { name: 'Neue E-Mail', exact: true }).click();
-  await page.getByRole('textbox', { name: 'Empfänger' }).fill('test@example.com');
+  await page.getByRole('combobox', { name: 'Empfänger' }).fill('test@example.com');
   await page.getByRole('textbox', { name: 'Betreff', exact: true }).fill('HTML Sicherheit');
   await page.getByRole('textbox', { name: 'Nachrichtentext' }).fill('<img src="https://attacker.invalid/pixel" onerror="window.hacked=1"><script>window.hacked=1</script>');
   await page.getByRole('button', { name: 'Lokal senden' }).click();
@@ -78,4 +78,82 @@ test('untrusted email content remains text and remote images are not fetched', a
   await expect(page.locator('.mail-body')).toContainText('<script>');
   await expect(page.locator('.mail-body img, .mail-body script')).toHaveCount(0);
   expect(await page.evaluate(() => 'hacked' in window)).toBe(false);
+});
+test('custom folders, multiple selection, categories and pinning persist',async({page})=>{
+  await page.getByRole('button',{name:'Organisieren',exact:true}).click();
+  await page.getByRole('textbox',{name:'Neuer Ordnername'}).fill('Projekt Alpha');
+  await page.getByRole('button',{name:'Ordner erstellen',exact:true}).click();
+  await page.getByRole('checkbox',{name:'Design-Review · Donnerstag auswählen'}).check();
+  await page.getByRole('combobox',{name:'Kategorie zuweisen'}).selectOption('Arbeit');
+  await expect(page.locator('.message-item').filter({hasText:'Design-Review'})).toContainText('Arbeit');
+  await page.getByRole('checkbox',{name:'Design-Review · Donnerstag auswählen'}).check();
+  await page.getByRole('combobox',{name:'Nachrichten verschieben'}).selectOption({label:'Projekt Alpha'});
+  await page.getByRole('button',{name:'Projekt Alpha',exact:true}).click();
+  await expect(page.locator('.message-item')).toHaveCount(1);
+  await page.reload();
+  await page.getByRole('button',{name:'Projekt Alpha',exact:true}).click();
+  await expect(page.locator('.message-item')).toContainText('Design-Review');
+});
+test('Bcc, rich text and a durable scheduled outbox are available',async({page})=>{
+  await page.getByRole('button',{name:'Neue E-Mail',exact:true}).click();
+  await page.getByRole('combobox',{name:'Bcc',exact:true}).fill('hidden@example.com');
+  await page.getByRole('textbox',{name:'Betreff',exact:true}).fill('Geplante Nachricht');
+  await page.getByRole('button',{name:'Formatieren',exact:true}).click();
+  await page.getByRole('textbox',{name:'Formatierter Nachrichtentext'}).fill('Formatierte Nachricht');
+  await page.getByRole('button',{name:'In Postausgang',exact:true}).click();
+  await page.getByRole('button',{name:'Postausgang (1)',exact:true}).click();
+  await expect(page.locator('.outbox-item')).toContainText('Geplante Nachricht');
+  await page.reload();
+  await page.getByRole('button',{name:'Postausgang (1)',exact:true}).click();
+  await page.getByRole('button',{name:'Jetzt senden',exact:true}).click();
+  await expect(page.locator('.outbox-item')).toHaveCount(0);
+  await page.getByRole('button',{name:'Gesendet',exact:true}).click();
+  await page.locator('.message-item').filter({hasText:'Geplante Nachricht'}).click();
+  await expect(page.locator('.html-mail')).toContainText('Formatierte Nachricht');
+});
+test('autosaved text recovers after reload and calendar views retain recurring events',async({page})=>{
+  await page.getByRole('button',{name:'Neue E-Mail',exact:true}).click();
+  await page.getByRole('textbox',{name:'Betreff',exact:true}).fill('Wiederherstellung');
+  await page.getByRole('textbox',{name:'Nachrichtentext',exact:true}).fill('Nicht verlieren');
+  await expect(page.getByText('Textentwurf automatisch lokal gespeichert.',{exact:false})).toBeVisible();
+  await page.reload();
+  await page.getByRole('button',{name:'Wiederherstellen',exact:true}).click();
+  await expect(page.getByRole('textbox',{name:'Nachrichtentext',exact:true})).toHaveValue('Nicht verlieren');
+  page.once('dialog',d=>d.accept());await page.keyboard.press('Escape');
+  await page.getByRole('button',{name:'Kalender',exact:true}).click();
+  await page.getByRole('button',{name:'Neuer Termin',exact:true}).click();
+  await page.getByRole('textbox',{name:'Titel',exact:true}).fill('Wiederkehrend');
+  await page.getByRole('combobox',{name:'Wiederholung',exact:true}).selectOption('daily');
+  await page.getByRole('button',{name:'Speichern',exact:true}).click();
+  expect(await page.locator('.calendar-event').filter({hasText:'Wiederkehrend'}).count()).toBeGreaterThan(1);
+  await page.getByRole('combobox',{name:'Kalenderansicht',exact:true}).selectOption('week');
+  await expect(page.locator('.calendar-cell')).toHaveCount(7);
+  await page.getByRole('combobox',{name:'Kalenderansicht',exact:true}).selectOption('day');
+  await expect(page.locator('.calendar-cell')).toHaveCount(1);
+});
+test('HTML sanitizer keeps formatting while removing scripts, handlers and remote resources',async({page})=>{
+  await page.locator('.message-item').first().click();
+  await page.evaluate(()=>{
+    const state=JSON.parse(localStorage.getItem('postblick-browser-demo-v1'));
+    state.mails[0].html='<p><strong>Erlaubt</strong><img src="https://attacker.invalid/pixel" onerror="window.hacked=1"><a href="javascript:alert(1)">Böse</a><script>window.hacked=1</script><iframe src="https://attacker.invalid"></iframe><svg onload="window.hacked=1"></svg></p>';
+    localStorage.setItem('postblick-browser-demo-v1',JSON.stringify(state));
+  });
+  await page.reload();await page.locator('.message-item').first().click();
+  await expect(page.locator('.html-mail strong')).toHaveText('Erlaubt');
+  await expect(page.locator('.html-mail script,.html-mail iframe,.html-mail svg,.html-mail img[src^="http"],.html-mail [onerror],.html-mail a[href^="javascript"]')).toHaveCount(0);
+  expect(await page.evaluate(()=> 'hacked' in window)).toBe(false);
+});
+test('separate calendars can be created and hidden without deleting events',async({page})=>{
+  await page.getByRole('button',{name:'Kalender',exact:true}).click();
+  await page.getByRole('textbox',{name:'Kalendername',exact:true}).fill('Arbeitskalender');
+  await page.getByRole('button',{name:'Kalender erstellen',exact:true}).click();
+  await page.getByRole('button',{name:'Neuer Termin',exact:true}).click();
+  await page.getByRole('combobox',{name:'Kalender',exact:true}).selectOption({label:'Arbeitskalender'});
+  await page.getByRole('textbox',{name:'Titel',exact:true}).fill('Separater Termin');
+  await page.getByRole('button',{name:'Speichern',exact:true}).click();
+  await expect(page.locator('.calendar-event').filter({hasText:'Separater Termin'})).toHaveCount(1);
+  await page.getByRole('checkbox',{name:'Arbeitskalender',exact:true}).uncheck();
+  await expect(page.locator('.calendar-event').filter({hasText:'Separater Termin'})).toHaveCount(0);
+  await page.getByRole('checkbox',{name:'Arbeitskalender',exact:true}).check();
+  await expect(page.locator('.calendar-event').filter({hasText:'Separater Termin'})).toHaveCount(1);
 });

@@ -3,7 +3,7 @@ import { randomBytes, createHash, timingSafeEqual } from 'node:crypto';
 import { shell } from 'electron';
 import type { Credentials } from './store';
 const authority = 'https://login.microsoftonline.com/common/oauth2/v2.0';
-const scope = 'openid profile offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite Contacts.ReadWrite';
+const scope = 'openid profile offline_access User.Read Mail.ReadWrite Mail.Send Calendars.ReadWrite Contacts.ReadWrite Tasks.ReadWrite MailboxSettings.ReadWrite';
 async function tokens(params: URLSearchParams, clientId: string): Promise<Extract<Credentials, { type: 'microsoft' }>> {
   const response = await fetch(authority + '/token', { method: 'POST', body: params, signal: AbortSignal.timeout(30000), redirect: 'error' });
   const body = await response.json() as Record<string, unknown>;

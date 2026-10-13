@@ -1,13 +1,17 @@
-Windows-Desktop-App für Windows 10/11 x64.
+Postblick 0.2.0 ist eine erweiterte Windows-Entwicklungsversion. Die vollständige angeforderte Outlook-Funktionsliste ist noch nicht umgesetzt.
 
-**Lade unter „Assets“ die Datei Postblick-0.1.1-Windows-x64-Setup.exe herunter.**
-Die vollständige EXE hat mehr als 100 MB. „Source code (zip)“ und „Source code (tar.gz)“ enthalten den Quellcode und sind keine Installer. Eine nur wenige Bytes oder KB große EXE ist ein Git-LFS-Verweis oder ein fehlerhafter Download und kann unter Windows nicht ausgeführt werden.
+Neu:
+- Mehrere verschlüsselte Konten, Kontowechsel und gemeinsamer Posteingang.
+- Hintergrundabruf, Benachrichtigungen, Ordnerverwaltung, Kategorien und Mehrfachaktionen.
+- Seitenabruf, Suche über Ordner und Serversuche.
+- Bcc, Signaturen, Vorlagen, formatierte Nachrichten und bereinigtes HTML.
+- Antwortreferenzen, Weiterleitungsanhänge und bis zu 20 MB neue Anhänge.
+- Automatische lokale Entwürfe sowie geplante Versandwarteschlange mit Schutz vor Doppelversand.
+- Kalenderansichten, zusätzliche Kalender, Serien, Erinnerungen und Microsoft-Besprechungen.
+- Erweiterte Kontakte/Aufgaben, Microsoft To Do, CSV/ICS/EML, Drucken und Windows-Mailto.
 
-Version 0.1.1 verbessert die Bereitstellung:
+**Download:** Unter Assets die vollständige Postblick-0.2.0-Windows-x64-Setup.exe laden. Quellcode-ZIPs sind keine Installer.
 
-- Vollständiger Installer als direkt herunterladbares Release-Asset.
-- SHA-256-Prüfsumme als separates Asset.
-- Windows-Prüfung von Installation, App-Start und Deinstallation vor der Veröffentlichung.
-- Die Versionsanzeige in der App entspricht der Paketversion.
+Die App startet mit Demo-Daten. Echte Microsoft- und IMAP/SMTP-Konten sind implementiert, aber ohne Testkonten nicht Ende-zu-Ende geprüft. Microsoft benötigt eine eigene Client-ID. Der Installer ist unsigniert, automatische Updateinstallation deaktiviert.
 
-Die App startet mit lokalen Demo-Daten. Microsoft OAuth und IMAP/SMTP sind implementiert; echte Konto- und Versandtests stehen noch aus. Der Installer ist unsigniert und kann eine SmartScreen-Warnung auslösen. Sicherheitswarnungen sollten nicht pauschal deaktiviert werden. Vollständige Outlook-Parität und ein unabhängiges Sicherheitsaudit stehen aus.
+Offen: unter anderem PST/MSG, S/MIME, Exchange-Freigaben, Add-ins, Viren-/Phishingprüfung, Offline-Konfliktauflösung und weitere Komfortfunktionen. [Vollständiger Funktionsstand](https://github.com/JonnyTheK1d/Outlook_Clone/blob/main/docs/feature-status.md).

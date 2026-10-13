@@ -15,6 +15,7 @@ const bridge: Bridge = {
   saveEvent: event => invoke('save-event', event), deleteEvent: id => invoke('delete-event', id),
   saveContact: contact => invoke('save-contact', contact), deleteContact: id => invoke('delete-contact', id),
   saveTask: task => invoke('save-task', task), deleteTask: id => invoke('delete-task', id),
-  theme: theme => invoke('theme', theme)
+  theme: theme => invoke('theme', theme), manage: command => invoke('manage', command),
+  onState: callback => { const listener = (_event: unknown, state: any) => callback(state); ipcRenderer.on('state-updated', listener); return () => { ipcRenderer.removeListener('state-updated', listener); }; }
 };
 contextBridge.exposeInMainWorld('postblick', Object.freeze(bridge));

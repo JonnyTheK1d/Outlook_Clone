@@ -1,6 +1,6 @@
 {
   "name": "postblick",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Postblick – Mail, Kalender und Kontakte für Windows",
   "author": "Postblick",
   "license": "MIT",
@@ -14,11 +14,14 @@
     "build": "npm run typecheck && vite build && npm run build:desktop",
     "test": "npm run build:desktop && node --test tests/*.test.cjs",
     "test:ui": "playwright test",
-    "dist:win": "npm run build && electron-builder --win nsis --x64 --publish never",
+    "dist:win": "npm run build && node scripts/dist-windows.cjs",
     "dist:linux": "npm run build && electron-builder --linux dir --x64",
     "test:native": "npm run build && node --test tests/native.cjs"
   },
   "dependencies": {
+    "dompurify": "3.4.17",
+    "electron-updater": "6.8.9",
+    "ical.js": "2.2.1",
     "imapflow": "1.7.8",
     "lucide-react": "0.577.0",
     "mailparser": "3.9.38",

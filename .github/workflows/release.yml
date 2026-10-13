@@ -36,5 +36,5 @@ jobs:
           RELEASE_TAG: ${{ github.ref_name }}
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh release create $env:RELEASE_TAG "installers/Postblick-$env:RELEASE_VERSION-Windows-x64-Setup.exe" "installers/SHA256SUMS" --verify-tag --title "Postblick $env:RELEASE_VERSION für Windows" --notes-file docs/release-notes.md
+          gh release create $env:RELEASE_TAG "installers/Postblick-$env:RELEASE_VERSION-Windows-x64-Setup.exe" "installers/SHA256SUMS" "installers/latest.yml" "installers/Postblick-$env:RELEASE_VERSION-Windows-x64-Setup.exe.blockmap" --verify-tag --title "Postblick $env:RELEASE_VERSION für Windows" --notes-file docs/release-notes.md
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

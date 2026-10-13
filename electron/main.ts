@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, session } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, net, protocol, session, Notification } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile, stat, writeFile } from 'node:fs/promises';
@@ -6,13 +6,19 @@ import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { Attachment, Folder, Mail, Outgoing, State } from '../shared/types';
 import { createDemo } from '../shared/demo';
+import { normalize, occurrences } from '../shared/features';
+import { handleCommand, flushOutbox, applyRules } from './commands';
 import { Store, secureAvailable, type Credentials } from './store';
 import { ImapProvider, MicrosoftProvider, type FileAttachment, type Provider } from './providers';
+import { initializeUpdates } from './updates';
+import { parseMailto } from './mailto';
 import { authorize } from './oauth';
 import { applyLocalAction, localOutgoing } from './local';
 import { clientIdSchema, contactSchema, eventSchema, folderSchema, identifierSchema, imapSchema, mailActionSchema, outgoingSchema, recipients, taskSchema } from './validation';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'postblick', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
+const profileArgument = !app.isPackaged && process.argv.find(a=>a.startsWith('--user-data-dir='));
+if(profileArgument)app.setPath('userData',path.resolve(profileArgument.slice('--user-data-dir='.length)));
 const development = !app.isPackaged && process.argv.includes('--dev');
 const origin = development ? 'http://127.0.0.1:5173' : 'postblick://bundle';
 let window: BrowserWindow;
@@ -24,18 +30,21 @@ let queue = Promise.resolve();
 function makeProvider(credentials: Credentials, persist = async (current: Credentials) => { store.credentials = current; await store.persistCredentials(); }): Provider {
   return credentials.type === 'imap' ? new ImapProvider(credentials) : new MicrosoftProvider(credentials, persist);
 }
-async function save(): Promise<State> { await store.save(); return structuredClone(store.state); }
+async function save(): Promise<State> { await store.save(); return store.view(); }
 async function sync(folder: Folder) {
-  if (provider) {
+  if (!['inbox','sent','drafts','archive','junk','trash'].includes(folder) && !store.state.folders?.some(f => f.id === folder)) throw new Error('Dieser Ordner ist nicht vorhanden.');
+  if (provider && folder !== 'custom:local-import') {
+    const old = store.state.mails.filter(m => m.folder === folder);
     const mails = await provider.list(folder);
+    for (const mail of mails) { const previous = old.find(m => m.id === mail.id); mail.pinned = previous?.pinned; if (store.state.mode === 'imap') mail.categories = previous?.categories || []; }
     store.state.mails = [...store.state.mails.filter(m => m.folder !== folder), ...mails];
+    if (folder === 'inbox') await applyRules(context());
+    store.state.completeFolders = [...new Set([...(store.state.completeFolders || []), folder])];
     if (provider instanceof MicrosoftProvider) {
-      // A failed required sync remains visible; partial data is not reported as complete.
-      store.state.events = await provider.events();
-      store.state.contacts = await provider.contacts();
+      const calendars=await provider.calendars();store.state.calendars=calendars.map(c=>({...c,visible:store.state.calendars?.find(p=>p.id===c.id)?.visible ?? true}));store.state.events = await provider.events(); store.state.contacts = await provider.contacts();
     }
   }
-  store.state.updatedAt = new Date().toISOString();
+  store.state.updatedAt = new Date().toISOString(); delete store.state.syncError;
   return save();
 }
 function findMail(id: string): Mail {
@@ -48,10 +57,10 @@ async function filesFor(message: Outgoing): Promise<FileAttachment[]> {
   const result: FileAttachment[] = [];
   for (const attachment of message.attachments) {
     const location = selectedFiles.get(attachment.id);
-    if (!location) throw new Error('Bitte wähle die Anhänge vor dem Senden erneut aus.');
+    if (!location) { const cached = store.queuedFiles['recovery:' + store.state.accountId]?.find(f=>f.id===attachment.id); if(!cached)throw new Error('Bitte wähle die Anhänge vor dem Senden erneut aus.'); const content=Buffer.from(cached.content,'base64');total+=content.length;if(total>20*1024*1024)throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein.');result.push({name:cached.name,content});continue; }
     const info = await stat(location);
     total += info.size;
-    if (!info.isFile() || total > 2 * 1024 * 1024) throw new Error('Neue Anhänge dürfen zusammen maximal 2 MB groß sein.');
+    if (!info.isFile() || total > 20 * 1024 * 1024) throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein.');
     const content = await readFile(location);
     if (content.length !== info.size) throw new Error('Ein Anhang wurde verändert. Bitte erneut auswählen.');
     result.push({ name: path.basename(location), content });
@@ -59,10 +68,12 @@ async function filesFor(message: Outgoing): Promise<FileAttachment[]> {
   return result;
 }
 function validateOutgoing(value: unknown, draft = false) {
-  const message = outgoingSchema.parse(value);
-  if (!draft && !recipients(message.to).length) throw new Error('Bitte mindestens einen Empfänger angeben.');
+  const message: Outgoing = outgoingSchema.parse(value);
+  if (!draft && !recipients(message.to + ',' + message.cc + ',' + (message.bcc || '')).length) throw new Error('Bitte mindestens einen Empfänger angeben.');
   recipients(message.to);
-  recipients(message.cc);
+  recipients(message.cc); recipients(message.bcc || '');
+  if (message.replyId) { const original = findMail(message.replyId); message.inReplyTo = original.messageId; message.references = [original.references, original.messageId].filter(Boolean).join(' '); }
+  if (message.forwardId) findMail(message.forwardId);
   if (message.draftId && findMail(message.draftId).folder !== 'drafts') throw new Error('Ungültiger Entwurf.');
   return message;
 }
@@ -72,16 +83,55 @@ async function connect(credentials: Credentials) {
   const nextProvider = makeProvider(credentials, async current => { staged.credentials = current; });
   const profile = await nextProvider.profile();
   const mails = await nextProvider.list('inbox');
+  const folders = await nextProvider.folders();
+  const calendars = nextProvider instanceof MicrosoftProvider ? await nextProvider.calendars() : undefined;
   const events = nextProvider instanceof MicrosoftProvider ? await nextProvider.events() : [];
   const contacts = nextProvider instanceof MicrosoftProvider ? await nextProvider.contacts() : [];
-  const previous = { state: store.state, credentials: store.credentials };
+  const previous = { state: store.state, credentials: store.credentials, accounts: { ...store.accounts } };
+  const existing = Object.entries(store.accounts).find(([,a]) => a.state.mode === credentials.type && a.state.email.toLowerCase() === profile.email.toLowerCase());
+  if (store.state.accountId) store.accounts[store.state.accountId] = { state: store.state, credentials: store.credentials };
   store.credentials = staged.credentials;
-  store.state = { mode: credentials.type, ...profile, mails, events, contacts, tasks: [], theme: store.state.theme, updatedAt: new Date().toISOString() };
-  try { await store.save(); } catch (error) { store.state = previous.state; store.credentials = previous.credentials; throw error; }
+  store.state = normalize({ ...(existing?.[1].state || {}), accountId: existing?.[0] || randomUUID(), mode: credentials.type, ...profile, calendars, folders, mails, events, contacts, tasks: [], theme: store.state.theme, updatedAt: new Date().toISOString() });
+  try { await store.save(); } catch (error) { store.state = previous.state; store.credentials = previous.credentials; store.accounts = previous.accounts; throw error; }
   // Subsequent refreshes persist against the now-committed mailbox.
   provider = makeProvider(staged.credentials);
   selectedFiles.clear();
-  return structuredClone(store.state);
+  return store.view();
+}
+async function outgoingFiles(message: Outgoing): Promise<FileAttachment[]> {
+  const files = await filesFor(message);
+  if (message.forwardId && provider && !(provider instanceof MicrosoftProvider)) {
+    const original = findMail(message.forwardId);
+    for (const a of original.attachments) { if (a.size > 20 * 1024 * 1024) throw new Error('Dieser Anhang überschreitet das Größenlimit.'); files.push({ name: a.name, content: await provider.attachment(original, a.id) }); }
+  }
+  if (files.reduce((sum,f) => sum + f.content.length,0) > 20 * 1024 * 1024) throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein.');
+  return files;
+}
+function context() { return { store, window, provider: () => provider, setProvider: () => { provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear(); }, sync, save, files: outgoingFiles, validate: validateOutgoing }; }
+let backgroundRunning = false;
+const reminded = new Set<string>();
+async function background() {
+  const active = store.state.accountId!;
+  try {
+    for (const id of Object.keys(store.accounts)) {
+      store.activate(id); provider = store.credentials ? makeProvider(store.credentials) : null;
+      try {
+        if (provider && Date.now() - Date.parse(store.state.updatedAt || '1970-01-01') >= (store.state.preferences?.syncMinutes || 2) * 60000) {
+          const existing = new Set(store.state.mails.filter(m => m.folder === 'inbox').map(m => m.id));
+          await sync('inbox');
+          const arrived = store.state.mails.filter(m => m.folder === 'inbox' && !existing.has(m.id) && !m.read);
+          if (arrived.length && store.state.preferences?.notifications && Notification.isSupported()) new Notification({ title: 'Postblick · ' + store.state.email, body: arrived.length + ' neue Nachricht(en)' }).show();
+        }
+        await flushOutbox(context());
+        const now = new Date(), soon = new Date(Date.now() + 86400000);
+        const events = occurrences(store.state.events, now, soon);
+        for (const item of [...events.map(e => ({ id: e.id + ':' + e.start, title: e.title, at: Date.parse(e.start) - (e.reminder || 0) * 60000, enabled: !!e.reminder })), ...store.state.tasks.map(t => ({ id: t.id, title: t.title, at: Date.parse(t.reminder || ''), enabled: !t.done && !!t.reminder }))]) {
+          const key = id + ':' + item.id;
+          if (item.enabled && item.at <= Date.now() && item.at > Date.now() - 60000 && !reminded.has(key)) { reminded.add(key); if (store.state.preferences?.notifications && Notification.isSupported()) new Notification({ title: 'Postblick · Erinnerung', body: item.title }).show(); }
+        }
+      } catch { store.state.syncError = 'Die automatische Synchronisierung ist fehlgeschlagen. Prüfe Verbindung und Anmeldung.'; }
+    }
+  } finally { store.activate(active); provider = store.credentials ? makeProvider(store.credentials) : null; await store.save(); window.webContents.send('state-updated', store.view()); }
 }
 function register(name: string, handler: (value: any) => Promise<unknown>) {
   ipcMain.handle(name, async (event, value) => {
@@ -101,43 +151,45 @@ function register(name: string, handler: (value: any) => Promise<unknown>) {
   });
 }
 function registerHandlers() {
-  register('state', async () => structuredClone(store.state));
+  register('state', async () => store.view());
   register('capabilities', async () => ({ desktop: true, secureStorage: secureAvailable(), platform: process.platform }));
   register('sync', value => sync(folderSchema.parse(value)));
   register('mail-action', async value => {
     const action = mailActionSchema.parse(value);
     const mail = findMail(action.id);
     if (action.kind === 'delete' && mail.folder !== 'trash' && mail.folder !== 'drafts') throw new Error('Bitte zuerst in den Papierkorb verschieben.');
-    if (provider) await provider.action(mail, action);
-    if (provider && action.kind === 'move') store.state.mails = store.state.mails.filter(m => m.id !== mail.id); else applyLocalAction(store.state, action);
+    if (action.kind === 'move' && !['inbox','sent','drafts','archive','junk','trash'].includes(action.folder) && !store.state.folders?.some(f => f.id === action.folder)) throw new Error('Dieser Ordner ist nicht vorhanden.');
+    if (provider && !mail.id.startsWith('local:')) await provider.action(mail, action);
+    if (provider && !mail.id.startsWith('local:') && action.kind === 'move') store.state.mails = store.state.mails.filter(m => m.id !== mail.id); else applyLocalAction(store.state, action);
     return save();
   });
   register('send', async value => {
     const message = validateOutgoing(value);
-    const files = await filesFor(message);
+    const files = await outgoingFiles(message);
+    if (message.scheduledAt && Date.parse(message.scheduledAt) > Date.now()) return handleCommand(context(), { kind: 'queue', message });
     if (provider) {
       await provider.send(message, files);
       store.state.mails = store.state.mails.filter(m => m.id !== message.draftId);
-      store.state.notice = store.state.mode === 'imap' ? 'Der SMTP-Server hat die Nachricht angenommen. Eine Kopie unter „Gesendet“ hängt von deinem Anbieter ab.' : 'Microsoft hat die Nachricht zum Versand angenommen.';
+      store.state.notice = store.state.mode === 'imap' ? 'Der SMTP-Server hat die Nachricht angenommen. Eine Gesendet-Kopie wurde versucht; bei Verbindungsfehlern kann sie fehlen.' : 'Microsoft hat die Nachricht zum Versand angenommen.';
     } else localOutgoing(store.state, message, false);
     for (const attachment of message.attachments) selectedFiles.delete(attachment.id);
     // The server has accepted the message. A local write error must not invite duplicate sending.
-    try { return await save(); } catch { store.state.notice = 'Die Nachricht wurde angenommen, aber die lokale Speicherung ist fehlgeschlagen. Bitte nicht erneut senden.'; return structuredClone(store.state); }
+    try { return await save(); } catch { store.state.notice = 'Die Nachricht wurde angenommen, aber die lokale Speicherung ist fehlgeschlagen. Bitte nicht erneut senden.'; return store.view(); }
   });
   register('save-draft', async value => {
     const message = validateOutgoing(value, true);
-    if (provider) { const files = await filesFor(message); await provider.draft(message, files); await sync('drafts'); } else localOutgoing(store.state, message, true);
+    if (provider) { const files = await outgoingFiles(message); await provider.draft(message, files); await sync('drafts'); } else localOutgoing(store.state, message, true);
     for (const attachment of message.attachments) selectedFiles.delete(attachment.id);
     return save();
   });
   register('pick-attachments', async () => {
-    const choice = await dialog.showOpenDialog(window, { title: 'Anhänge auswählen (zusammen maximal 2 MB)', properties: ['openFile', 'multiSelections'] });
+    const choice = await dialog.showOpenDialog(window, { title: 'Anhänge auswählen (zusammen maximal 20 MB)', properties: ['openFile', 'multiSelections'] });
     if (choice.canceled) return [];
     const results: Attachment[] = [];
     let total = 0;
     for (const file of choice.filePaths) {
       const info = await stat(file); total += info.size;
-      if (!info.isFile() || total > 2 * 1024 * 1024 || results.length >= 10) throw new Error('Neue Anhänge dürfen zusammen maximal 2 MB groß sein (höchstens 10 Dateien).');
+      if (!info.isFile() || total > 20 * 1024 * 1024 || results.length >= 20) throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein (höchstens 20 Dateien).');
       const id = randomUUID(); selectedFiles.set(id, file); results.push({ id, name: path.basename(file), size: info.size });
     }
     return results;
@@ -159,19 +211,25 @@ function registerHandlers() {
   register('connect-microsoft', async value => { if (!secureAvailable()) throw new Error('Echte Konten benötigen einen sicheren Betriebssystem-Schlüsselspeicher.'); return connect(await authorize(clientIdSchema.parse(value))); });
   register('connect-imap', async value => connect({ type: 'imap', ...imapSchema.parse(value) }));
   register('disconnect', async () => {
-    const previous = { state: store.state, credentials: store.credentials };
-    store.credentials = null; store.state = createDemo();
-    try { await store.save(); } catch (error) { store.state = previous.state; store.credentials = previous.credentials; throw error; }
-    provider = null; selectedFiles.clear();
-    return structuredClone(store.state);
+    const previous = { state: store.state, credentials: store.credentials, accounts: { ...store.accounts }, queuedFiles: { ...store.queuedFiles } };
+    for (const item of store.state.outbox || []) delete store.queuedFiles[item.id];
+    delete store.queuedFiles['recovery:' + store.state.accountId];
+    delete store.accounts[store.state.accountId!];
+    const next = Object.keys(store.accounts)[0];
+    if (next) { store.state = store.accounts[next].state; store.credentials = store.accounts[next].credentials; }
+    else { store.state = normalize(createDemo()); store.state.accountId = randomUUID(); store.credentials = null; }
+    try { await store.save(); } catch (error) { store.state = previous.state; store.credentials = previous.credentials; store.accounts = previous.accounts; store.queuedFiles=previous.queuedFiles;throw error; }
+    provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear();
+    return store.view();
   });
-  register('demo', async () => { if (provider) throw new Error('Bitte zuerst das verbundene Konto trennen.'); store.state = createDemo(); return save(); });
-  register('save-event', async value => { const item = eventSchema.parse(value); const id = provider instanceof MicrosoftProvider ? await provider.saveEvent(item) : item.id || randomUUID(); store.state.events = [...store.state.events.filter(e => e.id !== item.id), { ...item, id }]; return save(); });
+  register('demo', async () => { if (provider) throw new Error('Bitte zuerst das verbundene Konto trennen.'); const id = store.state.accountId; store.state = normalize(createDemo()); store.state.accountId = id; return save(); });
+  register('save-event', async value => { const item = eventSchema.parse(value); if(item.calendarId && !store.state.calendars?.some(c=>c.id===item.calendarId && c.canEdit))throw new Error('Dieser Kalender ist nicht beschreibbar.');recipients(item.attendees || ''); if (!(provider instanceof MicrosoftProvider) && (item.attendees || item.online)) throw new Error('Diese Besprechungsfunktion benötigt ein Microsoft-Konto.'); const id = provider instanceof MicrosoftProvider ? await provider.saveEvent(item) : item.id || randomUUID(); store.state.events = [...store.state.events.filter(e => e.id !== item.id), { ...item, id }]; return save(); });
   register('delete-event', async value => { const id = identifierSchema.parse(value); if (provider instanceof MicrosoftProvider) await provider.deleteEvent(id); store.state.events = store.state.events.filter(e => e.id !== id); return save(); });
-  register('save-contact', async value => { const item = contactSchema.parse(value); const id = provider instanceof MicrosoftProvider ? await provider.saveContact(item) : item.id || randomUUID(); store.state.contacts = [...store.state.contacts.filter(c => c.id !== item.id), { ...item, id }]; return save(); });
+  register('save-contact', async value => { const item = contactSchema.parse(value); recipients(item.emails || item.email); const id = provider instanceof MicrosoftProvider ? await provider.saveContact(item) : item.id || randomUUID(); store.state.contacts = [...store.state.contacts.filter(c => c.id !== item.id), { ...item, id }]; return save(); });
   register('delete-contact', async value => { const id = identifierSchema.parse(value); if (provider instanceof MicrosoftProvider) await provider.deleteContact(id); store.state.contacts = store.state.contacts.filter(c => c.id !== id); return save(); });
-  register('save-task', async value => { const item = taskSchema.parse(value); store.state.tasks = [...store.state.tasks.filter(t => t.id !== item.id), { ...item, id: item.id || randomUUID() }]; return save(); });
-  register('delete-task', async value => { const id = identifierSchema.parse(value); store.state.tasks = store.state.tasks.filter(t => t.id !== id); return save(); });
+  register('save-task', async value => { const item = taskSchema.parse(value); if(item.recurrence && item.recurrence!=='none' && !item.due)throw new Error('Bitte ein Fälligkeitsdatum für wiederkehrende Aufgaben angeben.');const wasDone=store.state.tasks.find(t=>t.id===item.id)?.done;const taskId = provider instanceof MicrosoftProvider ? await provider.saveTask(item) : item.id || randomUUID(); store.state.tasks = [...store.state.tasks.filter(t => t.id !== item.id), { ...item, id: taskId }];if(!(provider instanceof MicrosoftProvider) && item.done && !wasDone && item.recurrence && item.recurrence!=='none' && item.due){const date=new Date(item.due+'T12:00:00');if(item.recurrence==='daily')date.setDate(date.getDate()+1);if(item.recurrence==='weekly')date.setDate(date.getDate()+7);if(item.recurrence==='monthly'){const day=date.getDate();date.setDate(1);date.setMonth(date.getMonth()+1);date.setDate(Math.min(day,new Date(date.getFullYear(),date.getMonth()+1,0).getDate()));}store.state.tasks.push({...item,id:randomUUID(),done:false,due:date.getFullYear()+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0'),reminder:undefined,steps:item.steps?.map(s=>({...s,done:false}))});}return save(); });
+  register('delete-task', async value => { const id = identifierSchema.parse(value); if (provider instanceof MicrosoftProvider) await provider.deleteTask(id); store.state.tasks = store.state.tasks.filter(t => t.id !== id); return save(); });
+  register('manage', value => handleCommand(context(), value));
   register('theme', async value => { store.state.theme = z.enum(['light', 'dark']).parse(value); return save(); });
 }
 async function start() {
@@ -186,6 +244,8 @@ async function start() {
   });
   store = new Store(path.join(app.getPath('userData'), 'mailbox'));
   await store.load();
+  const initialMailto = process.argv.find(a => a.startsWith('mailto:'));
+  if (initialMailto) { try { store.state.workingDraft = parseMailto(initialMailto); } catch {} }
   if (store.credentials) provider = makeProvider(store.credentials);
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
@@ -203,10 +263,12 @@ async function start() {
   registerHandlers();
   window.once('ready-to-show', () => window.show());
   await window.loadURL(development ? origin + '/' : origin + '/index.html');
+  initializeUpdates(window);
+  const timer = setInterval(() => { if (backgroundRunning) return; backgroundRunning = true; queue = queue.then(background).catch(() => {}).finally(() => { backgroundRunning = false; }); }, 60000); timer.unref();
 }
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-  app.on('second-instance', () => { if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
+  app.on('second-instance', (_event, args) => { const uri = args.find(a=>a.startsWith('mailto:')); if(uri)queue=queue.then(async()=>{try{store.state.workingDraft=parseMailto(uri);await save();window.webContents.send('state-updated',store.view());}catch{}}); if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
   app.whenReady().then(start).catch(() => { dialog.showErrorBox('Postblick konnte nicht starten', 'Der lokale Speicher oder die Desktop-Umgebung ist nicht verfügbar. Entsperre den Betriebssystem-Schlüsselspeicher. Bestehende Daten werden nicht automatisch gelöscht.'); app.quit(); });
   app.on('window-all-closed', () => app.quit());
 }

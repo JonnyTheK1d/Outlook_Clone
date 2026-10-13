@@ -12,6 +12,6 @@ export function applyLocalAction(state: State, action: MailAction): State {
 export function localOutgoing(state: State, message: Outgoing, draft: boolean) {
   const id = draft && message.draftId ? message.draftId : randomUUID();
   state.mails = state.mails.filter(mail => mail.id !== message.draftId);
-  state.mails.unshift({ id, folder: draft ? 'drafts' : 'sent', sender: state.name, address: state.email, to: message.to, cc: message.cc, subject: message.subject || '(Kein Betreff)', body: message.body, date: new Date().toISOString(), read: true, flagged: false, attachments: message.attachments });
+  state.mails.unshift({ id, folder: draft ? 'drafts' : 'sent', sender: state.name, address: state.email, to: message.to, cc: message.cc, bcc: message.bcc, html: message.html, importance: message.importance, subject: message.subject || '(Kein Betreff)', body: message.body, date: new Date().toISOString(), read: true, flagged: false, attachments: message.attachments });
   return state;
 }
