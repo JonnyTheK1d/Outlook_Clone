@@ -7,3 +7,7 @@ playwright-report/
 .env*
 .local/
 *.log
+
+# Impeccable working files (review captures, decision-page state)
+.impeccable/review/
+.impeccable/questions/

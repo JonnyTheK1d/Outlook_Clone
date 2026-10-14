@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Postblick – Mail wie gewohnt, Daten bei dir</title>
+  <meta name="description" content="Postblick ist ein kostenloser E-Mail-Client für Windows, der sich bedient wie Outlook. Konten, Passwörter und Nachrichten bleiben verschlüsselt auf deinem PC.">
+  <meta name="theme-color" content="#f2c230">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip" href="#titel">Zum Inhalt springen</a>
+
+  <nav class="rail" aria-label="Kapitel">
+    <a href="#titel" style="--hue: var(--yellow); --on: var(--ink)" aria-current="true"><span>Titel</span></a>
+    <a href="#bedienung" style="--hue: var(--orange); --on: var(--ink)"><span>Bedienung</span></a>
+    <a href="#daten" style="--hue: var(--teal); --on: var(--ink)"><span>Deine Daten</span></a>
+    <a href="#funktionen" style="--hue: var(--grass); --on: var(--ink)"><span>Funktionen</span></a>
+    <a href="#installation" style="--hue: var(--ultramarine); --on: var(--paper)"><span>Installation</span></a>
+    <a href="#errata" style="--hue: var(--violet); --on: var(--paper)"><span>Errata</span></a>
+    <a href="#anhang" style="--hue: var(--sienna); --on: var(--paper)"><span>Anhang</span></a>
+  </nav>
+
+  <main>
+    <!-- Titel -->
+    <section class="chapter" id="titel" style="--board: var(--yellow)" aria-labelledby="titel-h">
+      <div class="leaf">
+        <header class="running-head">
+          <a class="brand" href="#titel" aria-label="Postblick, zum Anfang">
+            <svg viewBox="0 0 256 256" aria-hidden="true"><rect x="8" y="8" width="240" height="240" rx="52" fill="#0867c5"/><rect x="51" y="76" width="154" height="106" rx="13" fill="none" stroke="#fff" stroke-width="12"/><path d="M58 87l70 53 70-53" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span>Postblick</span>
+          </a>
+          <span class="rh-title">Benutzerhandbuch · Ausgabe 0.3.0</span>
+          <span class="rh-page">Seite i</span>
+        </header>
+
+        <div class="hero">
+          <div class="hero-copy">
+            <h1 id="titel-h">Mail wie gewohnt. <span>Daten bei dir.</span></h1>
+            <p class="lead">Postblick ist ein kostenloser E-Mail-Client für Windows, der sich bedient wie Outlook: Doppelklick öffnet ein eigenes Fenster, <kbd>Strg</kbd>+<kbd>R</kbd> antwortet, der Rechtsklick hat die Befehle, die du suchst. Deine Konten, Passwörter und Nachrichten liegen verschlüsselt auf deinem PC – ohne Postblick-Konto und ohne Server dazwischen.</p>
+            <div class="actions">
+              <a class="button primary" href="https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.3.0/Postblick-0.3.0-Windows-x64-Setup.exe">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>
+                Für Windows herunterladen
+              </a>
+              <a class="button secondary" href="https://github.com/JonnyTheK1d/Outlook_Clone">Quellcode auf GitHub</a>
+            </div>
+            <p class="meta"><span>v0.3.0</span><span>113 MiB</span><span>Windows 10/11, 64 Bit</span><span>kostenlos, MIT-Lizenz</span></p>
+            <p class="aside">Eine frühe, nicht digital signierte Version: Beim ersten Start zeigt Windows vermutlich eine SmartScreen-Warnung. Was das bedeutet, steht in <a href="#installation">Kapitel 4</a>.</p>
+          </div>
+
+          <figure class="hero-figure">
+            <div class="plate">
+              <img src="assets/postfach.webp" width="1440" height="900" alt="Postblick mit geöffnetem Posteingang: links die Ordnerleiste, in der Mitte die Nachrichtenliste nach Datum gruppiert, rechts eine Nachricht im Lesebereich, oben das Menüband mit Löschen, Archivieren, Verschieben und Nachverfolgen.">
+            </div>
+
+            <div class="template" tabindex="0" role="group" aria-labelledby="template-title" aria-describedby="template-hint">
+              <div class="template-head">
+                <span class="punch" aria-hidden="true"></span><span class="punch" aria-hidden="true"></span>
+                <strong id="template-title">Tastaturschablone</strong>
+                <span class="template-hint" id="template-hint">Anklicken und Tasten drücken</span>
+              </div>
+              <ul>
+                <li><button type="button" data-keys="enter" data-say="Eingabe oder Doppelklick öffnet die markierte Nachricht in einem eigenen Lesefenster – mit Menüband, Antworten und Blättern zur nächsten Nachricht."><span class="keys"><kbd>Eingabe</kbd></span><span class="does">In eigenem Fenster öffnen</span></button></li>
+                <li><button type="button" data-keys="ctrl+r" data-say="Strg+R antwortet auf die markierte Nachricht, mit Zitat und deiner Signatur."><span class="keys"><kbd>Strg</kbd><kbd>R</kbd></span><span class="does">Antworten</span></button></li>
+                <li><button type="button" data-keys="ctrl+shift+r" data-say="Strg+Umschalt+R antwortet allen Empfängern – deine eigene Adresse fällt dabei heraus."><span class="keys"><kbd>Strg</kbd><kbd>Umschalt</kbd><kbd>R</kbd></span><span class="does">Allen antworten</span></button></li>
+                <li><button type="button" data-keys="ctrl+f" data-say="Strg+F leitet weiter, wie in Outlook – nicht die Suche des Browsers. Gesucht wird mit Strg+E oder Strg+K."><span class="keys"><kbd>Strg</kbd><kbd>F</kbd></span><span class="does">Weiterleiten</span></button></li>
+                <li><button type="button" data-keys="ctrl+q" data-say="Strg+Q markiert als gelesen, Strg+U wieder als ungelesen – auch für mehrere markierte Nachrichten auf einmal."><span class="keys"><kbd>Strg</kbd><kbd>Q</kbd></span><span class="does">Als gelesen markieren</span></button></li>
+                <li><button type="button" data-keys="delete" data-say="Entf legt die Nachricht in den Papierkorb; im Papierkorb fragt Postblick vor dem endgültigen Löschen nach."><span class="keys"><kbd>Entf</kbd></span><span class="does">Löschen</span></button></li>
+                <li><button type="button" data-keys="backspace" data-say="Die Rücktaste archiviert die markierte Nachricht – wie in Outlook. Danach ist automatisch die nächste markiert."><span class="keys"><kbd>Rücktaste</kbd></span><span class="does">Archivieren</span></button></li>
+                <li><button type="button" data-keys="f9" data-say="F9 ruft neue Nachrichten für den geöffneten Ordner ab, wie „Senden/Empfangen“ in Outlook."><span class="keys"><kbd>F9</kbd></span><span class="does">Abrufen</span></button></li>
+              </ul>
+            </div>
+            <figcaption><b>Abb. 1</b> <span id="fig1-caption">Posteingang mit Lesebereich im Demo-Modus. So startet Postblick, bevor du ein Konto verbindest – alle Namen und Nachrichten sind Beispieldaten.</span></figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kapitel 1 -->
+    <section class="chapter" id="bedienung" style="--board: var(--orange)" aria-labelledby="bedienung-h">
+      <div class="leaf">
+        <header class="running-head"><span class="rh-book">Postblick · Benutzerhandbuch</span><span class="rh-title">Kapitel 1 · Bedienung</span><span class="rh-page">1–1</span></header>
+        <div class="leaf-body">
+          <h2 id="bedienung-h">Du musst nichts neu lernen.</h2>
+          <p class="intro">Postblick übernimmt die Gesten, die Outlook-Nutzer seit Jahren in den Fingern haben. Was du mit Maus und Tastatur gewohnt bist, funktioniert hier genauso – bis hin zum Menüband mit den Reitern „Start“ und „Ansicht“.</p>
+
+          <div class="entry">
+            <h3>Eigene Fenster</h3>
+            <div>
+              <p>Ein Doppelklick öffnet die Nachricht in einem eigenen Lesefenster mit Menüband. Antworten und Weiterleiten bekommen ein eigenes Schreibfenster, Entwürfe öffnen sich direkt zum Bearbeiten. Mit <kbd>Strg</kbd>+<kbd>,</kbd> und <kbd>Strg</kbd>+<kbd>.</kbd> blätterst du zur vorherigen oder nächsten Nachricht, <kbd>Esc</kbd> schließt das Fenster.</p>
+              <figure class="plate-figure">
+                <div class="plate"><img src="assets/lesefenster.webp" width="1000" height="700" loading="lazy" alt="Ein eigenes Lesefenster mit der Nachricht „Design-Review · Donnerstag“ und einem Menüband mit Antworten, Allen antworten, Weiterleiten, Löschen, Archivieren, Verschieben, Junk, Gelesen und Nachverfolgen."></div>
+                <figcaption><b>Abb. 2</b> Lesefenster nach einem Doppelklick. Beispieldaten aus dem Demo-Modus.</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="entry">
+            <h3>Rechtsklick</h3>
+            <div>
+              <p>Auf Nachrichten findest du Antworten, Gelesen und Ungelesen, Kennzeichnen, Kategorisieren, Anheften, Verschieben, Archivieren, Junk und Drucken – jeweils mit dem Tastenkürzel daneben. Auf Ordnern: alle als gelesen markieren, Unterordner anlegen, umbenennen, zu den Favoriten nehmen oder den Ordner leeren.</p>
+              <figure class="plate-figure">
+                <div class="plate"><img src="assets/kontextmenue.webp" width="960" height="548" loading="lazy" alt="Kontextmenü einer Nachricht mit Antworten, Allen antworten, Weiterleiten, Als ungelesen markieren, Kennzeichnen, Kategorisieren, Anheften, Verschieben mit aufgeklapptem Ordnermenü, Archivieren, Junk, Löschen, Drucken und Als EML speichern."></div>
+                <figcaption><b>Abb. 3</b> Kontextmenü mit aufgeklapptem „Verschieben“. Beispieldaten aus dem Demo-Modus.</figcaption>
+              </figure>
+            </div>
+          </div>
+
+          <div class="entry">
+            <h3>Auswahl</h3>
+            <p>Strg- und Umschalt-Klick wählen mehrere Nachrichten aus, <kbd>Strg</kbd>+<kbd>A</kbd> alle in der Liste. Die Auswahl ziehst du auf einen beliebigen Ordner, löschst, archivierst oder markierst sie in einem Zug.</p>
+          </div>
+
+          <div class="entry">
+            <h3>Ansicht</h3>
+            <p>Lesebereich rechts, unten oder ausgeblendet. Unterhaltungen, Gruppen wie „Heute“, „Gestern“ und „Letzte Woche“, Sortierung nach Datum, Absender, Betreff, Wichtigkeit oder Kennzeichnung. Dazu eine Kompaktansicht und ein dunkles Design.</p>
+          </div>
+
+          <div class="entry">
+            <h3>Tastatur&shy;referenz</h3>
+            <table class="reference">
+              <caption class="visually-hidden">Tastenkürzel in Postblick 0.3.0</caption>
+              <tbody>
+                <tr><th scope="row"><kbd>Strg</kbd>+<kbd>N</kbd></th><td>Neues Element im aktuellen Bereich</td><th scope="row"><kbd>Strg</kbd>+<kbd>1</kbd> … <kbd>4</kbd></th><td>E-Mail, Kalender, Kontakte, Aufgaben</td></tr>
+                <tr><th scope="row"><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>M</kbd></th><td>Neue E-Mail</td><th scope="row"><kbd>Strg</kbd>+<kbd>E</kbd> / <kbd>F3</kbd></th><td>Suchen</td></tr>
+                <tr><th scope="row"><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>A</kbd></th><td>Neuer Termin</td><th scope="row"><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>V</kbd></th><td>In Ordner verschieben</td></tr>
+                <tr><th scope="row"><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>C</kbd></th><td>Neuer Kontakt</td><th scope="row"><kbd>Strg</kbd>+<kbd>Umschalt</kbd>+<kbd>I</kbd></th><td>Zum Posteingang</td></tr>
+                <tr><th scope="row"><kbd>Strg</kbd>+<kbd>U</kbd></th><td>Als ungelesen markieren</td><th scope="row"><kbd>Einfg</kbd></th><td>Kennzeichnung umschalten</td></tr>
+                <tr><th scope="row"><kbd>Strg</kbd>+<kbd>P</kbd></th><td>Drucken</td><th scope="row"><kbd>Strg</kbd>+<kbd>Enter</kbd></th><td>Senden (im Editor)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kapitel 2 -->
+    <section class="chapter" id="daten" style="--board: var(--teal)" aria-labelledby="daten-h">
+      <div class="leaf">
+        <header class="running-head"><span class="rh-book">Postblick · Benutzerhandbuch</span><span class="rh-title">Kapitel 2 · Deine Daten</span><span class="rh-page">2–1</span></header>
+        <div class="leaf-body">
+          <h2 id="daten-h">Deine Post geht nicht über uns.</h2>
+          <p class="intro">Postblick verbindet sich direkt mit deinem E-Mail-Anbieter. Es gibt kein Postblick-Konto, keine Postblick-Cloud und keinen Server, über den deine Nachrichten laufen.</p>
+
+          <figure class="route" aria-labelledby="route-caption">
+            <ol class="route-line">
+              <li class="station">
+                <strong>Dein Anbieter</strong>
+                <span>Outlook.com, Microsoft 365, Gmail, GMX, WEB.DE, Yahoo, iCloud oder jeder IMAP-Server</span>
+              </li>
+              <li class="link" aria-hidden="true"><span>TLS</span></li>
+              <li class="station home">
+                <strong>Dein Windows-PC</strong>
+                <span>Postblick hält Zugangsdaten und Nachrichten-Cache verschlüsselt mit Windows DPAPI</span>
+              </li>
+              <li class="link absent" aria-hidden="true"></li>
+              <li class="station absent">
+                <strong>Postblick-Server</strong>
+                <span>Gibt es nicht.</span>
+              </li>
+            </ol>
+            <figcaption id="route-caption"><b>Abb. 4</b> Der Weg einer Nachricht: vom Anbieter verschlüsselt auf deinen PC. Eine dritte Station existiert nicht.</figcaption>
+          </figure>
+
+          <div class="entry"><h3>Anmeldung</h3><p>Microsoft-Konten melden sich im Systembrowser an, mit OAuth und PKCE. Dein Microsoft-Passwort bekommt Postblick nie zu sehen; gespeichert wird nur ein verschlüsseltes Anmelde-Token.</p></div>
+          <div class="entry"><h3>Verbindung</h3><p>IMAP läuft über TLS auf Port 993, SMTP über 465 oder 587 mit verpflichtendem STARTTLS. Serverzertifikate werden geprüft – es gibt keinen Rückfall auf Klartext und keinen Schalter, der die Prüfung abschaltet.</p></div>
+          <div class="entry"><h3>Lesen</h3><p>HTML-Mails werden bereinigt angezeigt: Externe Bilder, Skripte und aktive Inhalte sind blockiert, Zählpixel laden also nicht. Links öffnen erst, nachdem du das Ziel bestätigt hast.</p></div>
+          <div class="entry"><h3>Trennen</h3><p>Trennst du ein Konto, entfernt Postblick dessen lokalen Cache und die gespeicherten Zugangsdaten. Die Nachrichten auf dem Server bleiben erhalten.</p></div>
+          <div class="entry"><h3>Grenze</h3><p>Die Verschlüsselung schützt deine Daten auf der Festplatte. Gegen Schadsoftware, die unter deinem eigenen Windows-Benutzer läuft, hilft sie nicht.</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kapitel 3 -->
+    <section class="chapter" id="funktionen" style="--board: var(--grass)" aria-labelledby="funktionen-h">
+      <div class="leaf">
+        <header class="running-head"><span class="rh-book">Postblick · Benutzerhandbuch</span><span class="rh-title">Kapitel 3 · Funktionen</span><span class="rh-page">3–1</span></header>
+        <div class="leaf-body">
+          <h2 id="funktionen-h">Mail, Kalender, Kontakte, Aufgaben.</h2>
+          <p class="intro">Ein Register des Funktionsumfangs von Version 0.3.0, nach Bereichen. Die vollständige Gegenüberstellung mit Outlook, einschließlich allem, was noch fehlt, steht im <a href="https://github.com/JonnyTheK1d/Outlook_Clone/blob/v0.3.0/docs/feature-status.md">Funktionsstand</a>.</p>
+          <div class="register">
+            <section><h3>Konten</h3><ul><li>Mehrere Konten gleichzeitig, verschlüsselt getrennt</li><li>Gemeinsamer Posteingang</li><li>Microsoft 365 und Outlook.com</li><li>Gmail, GMX, WEB.DE, Yahoo, iCloud mit Servervorgaben</li><li>Jedes IMAP/SMTP-Konto</li><li>Abruf im Hintergrund, Windows-Benachrichtigungen, Zähler in der Taskleiste</li></ul></section>
+            <section><h3>E-Mail</h3><ul><li>Ordner, Unterordner, Favoriten</li><li>Kategorien und Anheften</li><li>Lokale Regeln nach Absender und Betreff</li><li>Suche mit <code>from:</code>, <code>subject:</code>, <code>after:</code>, <code>has:attachment</code></li><li>Suche auf dem Server</li><li>Unterhaltungen im Lesebereich</li></ul></section>
+            <section><h3>Schreiben</h3><ul><li>Formatierter Text, Signatur, Vorlagen</li><li>Cc, Bcc, Priorität, Lesebestätigung</li><li>Geplanter Versand über den Postausgang</li><li>Automatische lokale Entwurfssicherung</li><li>Anhänge bis 20 MB</li></ul></section>
+            <section><h3>Kalender</h3><ul><li>Tag, Woche, Monat</li><li>Mehrere Kalender, ein- und ausblendbar</li><li>Serientermine und Erinnerungen</li><li>Teams-Besprechungen und Zusagen bei Microsoft-Konten</li></ul></section>
+            <section><h3>Kontakte und Aufgaben</h3><ul><li>Kontakte mit Gruppen, Gruppe anschreiben</li><li>Aufgaben mit Unteraufgaben, Erinnerung und Wiederholung</li><li>Microsoft To Do</li><li>„Mein Tag“ mit Terminen und Aufgaben</li></ul></section>
+            <section><h3>Daten</h3><ul><li>EML-, CSV- und ICS-Export und -Import</li><li>Drucken</li><li>Als Standard-Mailprogramm für <code>mailto:</code>-Links</li><li>Abwesenheitsnotiz bei Microsoft-Konten</li></ul></section>
+          </div>
+          <figure class="plate-figure wide">
+            <div class="plate"><img src="assets/kalender.webp" width="1440" height="900" loading="lazy" alt="Postblick-Kalender in der Monatsansicht mit Kalenderverwaltung in der Seitenleiste."></div>
+            <figcaption><b>Abb. 5</b> Kalender in der Monatsansicht. Beispieldaten aus dem Demo-Modus.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kapitel 4 -->
+    <section class="chapter" id="installation" style="--board: var(--ultramarine)" aria-labelledby="installation-h">
+      <div class="leaf">
+        <header class="running-head"><span class="rh-book">Postblick · Benutzerhandbuch</span><span class="rh-title">Kapitel 4 · Installation</span><span class="rh-page">4–1</span></header>
+        <div class="leaf-body">
+          <h2 id="installation-h">In vier Schritten startklar.</h2>
+          <ol class="steps">
+            <li>
+              <h3>Installer laden</h3>
+              <p>Unter den Release-Assets liegt die vollständige EXE mit 113 MiB. „Source code (zip)“ ist kein Installer, und eine EXE mit nur wenigen Kilobyte ist ein Git-LFS-Verweis – den bitte löschen und neu laden.</p>
+              <a class="button primary" href="https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.3.0/Postblick-0.3.0-Windows-x64-Setup.exe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>Postblick-0.3.0-Windows-x64-Setup.exe</a>
+              <div class="checksum">
+                <span class="label">SHA-256</span>
+                <code id="sha">a261586fd61a13fcd119c61687f1cbc97c7f6b53cf81ba674060cada9d80eaca</code>
+                <button type="button" class="copy" data-copy="sha">Kopieren</button>
+              </div>
+              <p class="small">Prüfen in PowerShell: <code>Get-FileHash .\Postblick-0.3.0-Windows-x64-Setup.exe</code></p>
+            </li>
+            <li>
+              <h3>SmartScreen bestätigen</h3>
+              <p>Der Installer ist nicht digital signiert. Windows warnt deshalb womöglich mit „Der Computer wurde durch Windows geschützt“. Stimmt die Prüfsumme, wählst du „Weitere Informationen“ und „Trotzdem ausführen“. Schalte SmartScreen deshalb bitte nicht generell ab.</p>
+            </li>
+            <li>
+              <h3>Demo ansehen</h3>
+              <p>Postblick installiert sich für deinen Benutzer, du wählst den Ort. Die App startet mit klar gekennzeichneten Beispieldaten; im Demo-Modus wird keine E-Mail verschickt.</p>
+            </li>
+            <li>
+              <h3>Konto verbinden</h3>
+              <p>Unter Einstellungen → Konto. Für IMAP/SMTP reichen Adresse, Server und meist ein App-Passwort; bei Gmail, GMX, WEB.DE, Yahoo und iCloud sind die Server vorausgefüllt. Für Microsoft 365 und Outlook.com brauchst du in dieser Version noch eine eigene, kostenlose App-Registrierung mit Client-ID – die <a href="https://github.com/JonnyTheK1d/Outlook_Clone/blob/v0.3.0/README.md#microsoft-365--outlookcom-einrichten">Anleitung steht in der README</a>.</p>
+            </li>
+          </ol>
+          <p class="requirements"><strong>Voraussetzung</strong> Windows 10 oder 11, 64 Bit. Persönliche Daten bleiben bei einer Deinstallation in deinem Benutzerprofil erhalten.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Kapitel 5 -->
+    <section class="chapter" id="errata" style="--board: var(--violet)" aria-labelledby="errata-h">
+      <div class="leaf">
+        <header class="running-head"><span class="rh-book">Postblick · Benutzerhandbuch</span><span class="rh-title">Kapitel 5 · Errata</span><span class="rh-page">5–1</span></header>
+        <div class="leaf-body">
+          <h2 id="errata-h">Was du wissen solltest.</h2>
+          <p class="intro">Jedes ehrliche Handbuch hat ein Errata-Blatt. Diese Punkte gelten für Version 0.3.0.</p>
+          <ul class="slips">
+            <li><h3>Frühe Version</h3><p>Die Abläufe mit echten Microsoft- und IMAP-Konten sind umgesetzt, aber noch nicht mit Testkonten Ende-zu-Ende geprüft. Probier Postblick zuerst mit einem Testkonto aus.</p></li>
+            <li><h3>Nicht signiert</h3><p>Ohne Code-Signing-Zertifikat warnt Windows beim Installieren, und automatische Updates bleiben abgeschaltet. Neue Versionen lädst du selbst.</p></li>
+            <li><h3>Kein Audit</h3><p>Es gab bisher kein unabhängiges Sicherheitsaudit. Ein mit Outlook vergleichbares Sicherheitsniveau ist nicht nachgewiesen.</p></li>
+            <li><h3>Kein vollständiger Ersatz</h3><p>Es fehlen unter anderem PST- und MSG-Import, S/MIME, freigegebene Exchange-Postfächer, Stellvertretung und Add-ins.</p></li>
+            <li><h3>Nur Windows</h3><p>Windows 10 und 11 mit 64 Bit. Eine macOS-Version ist nicht paketiert.</p></li>
+            <li><h3>Kein Microsoft-Produkt</h3><p>Postblick ist ein unabhängiges Open-Source-Projekt und steht in keiner Verbindung zu Microsoft.</p></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- Anhang -->
+    <section class="chapter" id="anhang" style="--board: var(--sienna)" aria-labelledby="anhang-h">
+      <div class="leaf">
+        <header class="running-head"><span class="rh-book">Postblick · Benutzerhandbuch</span><span class="rh-title">Anhang</span><span class="rh-page">A–1</span></header>
+        <div class="leaf-body">
+          <h2 id="anhang-h">Offen und überprüfbar.</h2>
+          <p class="intro">Der komplette Quellcode steht unter MIT-Lizenz auf GitHub. Zu jedem Release gehört ein Prüfprotokoll: welche Tests liefen, wie der Installer auf einem Windows-Rechner installiert, gestartet und wieder deinstalliert wurde, und mit welchen Prüfsummen.</p>
+          <dl class="record">
+            <div><dt>Automatische Prüfungen</dt><dd><span class="num">39</span> Kern- und Provider-Tests, <span class="num">17</span> Browser-Abläufe, <span class="num">2</span> Desktop-Tests</dd></div>
+            <div><dt>Release-Prüfung</dt><dd>Installation, Start, Mailto- und Benachrichtigungs-Registrierung, Deinstallation auf Windows</dd></div>
+            <div><dt>Installer</dt><dd><span class="num">118.858.829</span> Bytes, 81 Dateien, Archiv geprüft</dd></div>
+          </dl>
+          <ul class="index-links">
+            <li><a href="https://github.com/JonnyTheK1d/Outlook_Clone/releases">Alle Releases</a></li>
+            <li><a href="https://github.com/JonnyTheK1d/Outlook_Clone/blob/v0.3.0/docs/validation.md">Prüfprotokoll</a></li>
+            <li><a href="https://github.com/JonnyTheK1d/Outlook_Clone/blob/v0.3.0/docs/feature-status.md">Funktionsstand</a></li>
+            <li><a href="https://github.com/JonnyTheK1d/Outlook_Clone/blob/v0.3.0/SECURITY.md">Sicherheit</a></li>
+            <li><a href="https://github.com/JonnyTheK1d/Outlook_Clone/blob/v0.3.0/LICENSE">MIT-Lizenz</a></li>
+          </ul>
+
+          <div class="closing">
+            <p class="closing-line">Mail wie gewohnt. Daten bei dir.</p>
+            <a class="button primary" href="https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.3.0/Postblick-0.3.0-Windows-x64-Setup.exe"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12m0 0-5-5m5 5 5-5M4 20h16"/></svg>Postblick 0.3.0 herunterladen</a>
+          </div>
+
+          <footer class="colophon">
+            <p>Postblick ist kein Microsoft-Produkt. Microsoft, Outlook und Windows sind Marken der Microsoft Corporation.</p>
+            <p>Gesetzt aus Archivo, EB Garamond und JetBrains Mono (SIL Open Font License). Abbildungen: Bildschirmfotos aus dem Demo-Modus von Postblick 0.3.0.</p>
+          </footer>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <p class="visually-hidden" aria-live="polite" id="announce"></p>
+  <script src="app.js" defer></script>
+</body>
+</html>
