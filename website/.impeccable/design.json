@@ -1,0 +1,344 @@
+{
+ "schemaVersion": 2,
+ "generatedAt": "2026-10-14T10:17:20+00:00",
+ "title": "Design System: Postblick Website",
+ "extensions": {
+  "colorMeta": {
+   "chrome-yellow": {
+    "role": "primary",
+    "displayName": "Chromgelb",
+    "canonical": "oklch(83.4% 0.158 89.0)",
+    "tonalRamp": [
+     "oklch(15% 0.158 89.0)",
+     "oklch(26% 0.158 89.0)",
+     "oklch(37% 0.158 89.0)",
+     "oklch(48% 0.158 89.0)",
+     "oklch(59% 0.158 89.0)",
+     "oklch(70% 0.158 89.0)",
+     "oklch(82% 0.158 89.0)",
+     "oklch(95% 0.158 89.0)"
+    ]
+   },
+   "oxide-orange": {
+    "role": "secondary",
+    "displayName": "Oxidorange",
+    "canonical": "oklch(65.8% 0.167 44.2)",
+    "tonalRamp": [
+     "oklch(15% 0.167 44.2)",
+     "oklch(26% 0.167 44.2)",
+     "oklch(37% 0.167 44.2)",
+     "oklch(48% 0.167 44.2)",
+     "oklch(59% 0.167 44.2)",
+     "oklch(70% 0.167 44.2)",
+     "oklch(82% 0.167 44.2)",
+     "oklch(95% 0.167 44.2)"
+    ]
+   },
+   "teal": {
+    "role": "secondary",
+    "displayName": "Petrol",
+    "canonical": "oklch(62.0% 0.104 183.2)",
+    "tonalRamp": [
+     "oklch(15% 0.104 183.2)",
+     "oklch(26% 0.104 183.2)",
+     "oklch(37% 0.104 183.2)",
+     "oklch(48% 0.104 183.2)",
+     "oklch(59% 0.104 183.2)",
+     "oklch(70% 0.104 183.2)",
+     "oklch(82% 0.104 183.2)",
+     "oklch(95% 0.104 183.2)"
+    ]
+   },
+   "grass": {
+    "role": "secondary",
+    "displayName": "Grasgrün",
+    "canonical": "oklch(62.1% 0.149 139.2)",
+    "tonalRamp": [
+     "oklch(15% 0.149 139.2)",
+     "oklch(26% 0.149 139.2)",
+     "oklch(37% 0.149 139.2)",
+     "oklch(48% 0.149 139.2)",
+     "oklch(59% 0.149 139.2)",
+     "oklch(70% 0.149 139.2)",
+     "oklch(82% 0.149 139.2)",
+     "oklch(95% 0.149 139.2)"
+    ]
+   },
+   "ultramarine": {
+    "role": "secondary",
+    "displayName": "Ultramarin",
+    "canonical": "oklch(47.5% 0.197 266.9)",
+    "tonalRamp": [
+     "oklch(15% 0.170 266.9)",
+     "oklch(26% 0.197 266.9)",
+     "oklch(37% 0.197 266.9)",
+     "oklch(48% 0.197 266.9)",
+     "oklch(59% 0.197 266.9)",
+     "oklch(70% 0.197 266.9)",
+     "oklch(82% 0.197 266.9)",
+     "oklch(95% 0.170 266.9)"
+    ]
+   },
+   "violet": {
+    "role": "secondary",
+    "displayName": "Violett",
+    "canonical": "oklch(50.7% 0.166 295.3)",
+    "tonalRamp": [
+     "oklch(15% 0.166 295.3)",
+     "oklch(26% 0.166 295.3)",
+     "oklch(37% 0.166 295.3)",
+     "oklch(48% 0.166 295.3)",
+     "oklch(59% 0.166 295.3)",
+     "oklch(70% 0.166 295.3)",
+     "oklch(82% 0.166 295.3)",
+     "oklch(95% 0.166 295.3)"
+    ]
+   },
+   "sienna": {
+    "role": "secondary",
+    "displayName": "Siena",
+    "canonical": "oklch(48.9% 0.111 40.8)",
+    "tonalRamp": [
+     "oklch(15% 0.111 40.8)",
+     "oklch(26% 0.111 40.8)",
+     "oklch(37% 0.111 40.8)",
+     "oklch(48% 0.111 40.8)",
+     "oklch(59% 0.111 40.8)",
+     "oklch(70% 0.111 40.8)",
+     "oklch(82% 0.111 40.8)",
+     "oklch(95% 0.111 40.8)"
+    ]
+   },
+   "vermilion": {
+    "role": "tertiary",
+    "displayName": "Zinnober",
+    "canonical": "oklch(54.7% 0.189 31.7)",
+    "tonalRamp": [
+     "oklch(15% 0.170 31.7)",
+     "oklch(26% 0.189 31.7)",
+     "oklch(37% 0.189 31.7)",
+     "oklch(48% 0.189 31.7)",
+     "oklch(59% 0.189 31.7)",
+     "oklch(70% 0.189 31.7)",
+     "oklch(82% 0.189 31.7)",
+     "oklch(95% 0.170 31.7)"
+    ]
+   },
+   "print-ink": {
+    "role": "neutral",
+    "displayName": "Druckschwarz",
+    "canonical": "oklch(20.0% 0.014 94.0)",
+    "tonalRamp": [
+     "oklch(15% 0.014 94.0)",
+     "oklch(26% 0.014 94.0)",
+     "oklch(37% 0.014 94.0)",
+     "oklch(48% 0.014 94.0)",
+     "oklch(59% 0.014 94.0)",
+     "oklch(70% 0.014 94.0)",
+     "oklch(82% 0.014 94.0)",
+     "oklch(95% 0.014 94.0)"
+    ]
+   },
+   "ink-soft": {
+    "role": "neutral",
+    "displayName": "Weiches Schwarz",
+    "canonical": "oklch(34.9% 0.016 91.7)",
+    "tonalRamp": [
+     "oklch(15% 0.016 91.7)",
+     "oklch(26% 0.016 91.7)",
+     "oklch(37% 0.016 91.7)",
+     "oklch(48% 0.016 91.7)",
+     "oklch(59% 0.016 91.7)",
+     "oklch(70% 0.016 91.7)",
+     "oklch(82% 0.016 91.7)",
+     "oklch(95% 0.016 91.7)"
+    ]
+   },
+   "paper": {
+    "role": "neutral",
+    "displayName": "Papier",
+    "canonical": "oklch(98.4% 0.004 121.6)",
+    "tonalRamp": [
+     "oklch(15% 0.004 121.6)",
+     "oklch(26% 0.004 121.6)",
+     "oklch(37% 0.004 121.6)",
+     "oklch(48% 0.004 121.6)",
+     "oklch(59% 0.004 121.6)",
+     "oklch(70% 0.004 121.6)",
+     "oklch(82% 0.004 121.6)",
+     "oklch(95% 0.004 121.6)"
+    ]
+   },
+   "acetate": {
+    "role": "neutral",
+    "displayName": "Acetat",
+    "canonical": "rgb(246 248 245 / .9)",
+    "tonalRamp": []
+   }
+  },
+  "typographyMeta": {
+   "display": {
+    "displayName": "Display",
+    "purpose": "Nur die Titelzeile der ersten Seite."
+   },
+   "headline": {
+    "displayName": "Headline",
+    "purpose": "Kapitelüberschriften."
+   },
+   "label": {
+    "displayName": "Label",
+    "purpose": "Randüberschriften, Registertitel, Schrittnamen."
+   },
+   "body": {
+    "displayName": "Body",
+    "purpose": "Fließtext, höchstens 32em."
+   },
+   "lead": {
+    "displayName": "Lead",
+    "purpose": "Einleitungsabsatz je Kapitel, höchstens 28em."
+   },
+   "mono": {
+    "displayName": "Mono",
+    "purpose": "Tasten, Versionen, Größen, Prüfsummen, Seitenzahlen."
+   }
+  },
+  "shadows": [
+   {
+    "name": "leaf",
+    "value": "0 1px 0 rgba(255,255,255,.5) inset, 0 10px 24px -14px rgba(24,22,15,.55), 0 2px 5px rgba(24,22,15,.18)",
+    "purpose": "Jede Acetat-Seite."
+   },
+   {
+    "name": "next-board",
+    "value": "0 6px 14px -8px rgba(24,22,15,.6)",
+    "purpose": "Das versetzte nächste Register unter der Seite."
+   },
+   {
+    "name": "template",
+    "value": "4px 10px 16px -6px rgba(24,22,15,.42)",
+    "purpose": "Die gedrehte Tastaturschablone."
+   },
+   {
+    "name": "errata",
+    "value": "0 10px 18px -10px rgba(24,22,15,.6)",
+    "purpose": "Das eingeklebte Errata-Blatt."
+   }
+  ],
+  "motion": [
+   {
+    "name": "step",
+    "value": "90ms steps(2)",
+    "purpose": "Jeder Zustandswechsel: Registerkarte, Knopf, ausgestanzte Zeile. Keine Easing-Kurven; bei reduzierter Bewegung keine Übergänge."
+   }
+  ],
+  "breakpoints": [
+   {
+    "name": "stack",
+    "value": "1100px"
+   },
+   {
+    "name": "strip",
+    "value": "820px"
+   }
+  ]
+ },
+ "components": [
+  {
+   "name": "Primary Button",
+   "kind": "button",
+   "refersTo": "button-primary",
+   "description": "Hauptaktion, etwa der Download.",
+   "html": "<a class=\"ds-btn-primary\" href=\"#\"><svg viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M12 3v12m0 0-5-5m5 5 5-5M4 20h16\"/></svg>Für Windows herunterladen</a>",
+   "css": ".ds-btn-primary{display:inline-flex;align-items:center;gap:10px;min-height:52px;padding:14px 22px;border:2px solid #18160f;border-radius:3px;background:#f2c230;color:#18160f;font:700 .95rem/1.15 Archivo,'Arial Narrow',sans-serif;font-stretch:88%;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;box-shadow:0 3px 6px -2px rgba(24,22,15,.4);transition:background-color 90ms steps(2),color 90ms steps(2)}.ds-btn-primary svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round}.ds-btn-primary:hover{background:#18160f;color:#f2c230}.ds-btn-primary:focus-visible{outline:3px solid #18160f;outline-offset:3px}"
+  },
+  {
+   "name": "Secondary Button",
+   "kind": "button",
+   "refersTo": "button-secondary",
+   "description": "Zweite Aktion neben der Hauptaktion.",
+   "html": "<a class=\"ds-btn-secondary\" href=\"#\">Quellcode auf GitHub</a>",
+   "css": ".ds-btn-secondary{display:inline-flex;align-items:center;min-height:52px;padding:14px 22px;border:2px solid #18160f;border-radius:3px;background:transparent;color:#18160f;font:700 .95rem/1.15 Archivo,'Arial Narrow',sans-serif;font-stretch:88%;letter-spacing:.08em;text-transform:uppercase;text-decoration:none;transition:background-color 90ms steps(2),color 90ms steps(2)}.ds-btn-secondary:hover{background:#18160f;color:#f9faf7}.ds-btn-secondary:focus-visible{outline:3px solid #18160f;outline-offset:3px}"
+  },
+  {
+   "name": "Key",
+   "kind": "chip",
+   "refersTo": "key",
+   "description": "Tastenkappe für Tastenkürzel.",
+   "html": "<span><kbd class=\"ds-key\">Strg</kbd>+<kbd class=\"ds-key\">R</kbd></span>",
+   "css": ".ds-key{font:500 .78rem/1 'JetBrains Mono',Consolas,monospace;padding:.18em .42em .2em;border:1px solid #18160f;border-radius:4px;background:#f9faf7;color:#18160f;box-shadow:0 1px 0 #18160f}"
+  },
+  {
+   "name": "Tab Rail",
+   "kind": "nav",
+   "description": "Registerleiste; die aktuelle Karte steht bündig.",
+   "html": "<nav class=\"ds-rail\"><a href=\"#\" style=\"--hue:#f2c230\" aria-current=\"true\"><span>Titel</span></a><a href=\"#\" style=\"--hue:#e2692c\"><span>Bedienung</span></a><a href=\"#\" style=\"--hue:#1f9a8c\"><span>Daten</span></a></nav>",
+   "css": ".ds-rail{display:flex;flex-direction:column;gap:3px;width:54px;height:300px}.ds-rail a{flex:1;display:flex;align-items:center;justify-content:center;margin-left:16px;border-radius:9px 0 0 9px;background:var(--hue);color:#18160f;text-decoration:none;box-shadow:-2px 2px 4px rgba(24,22,15,.28);transition:margin-left 90ms steps(2)}.ds-rail a span{writing-mode:vertical-rl;transform:rotate(180deg);font:700 .7rem/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase}.ds-rail a[aria-current=true]{margin-left:0}.ds-rail a:hover{margin-left:10px}.ds-rail a:focus-visible{outline:3px solid #18160f;outline-offset:3px}"
+  },
+  {
+   "name": "Figure Plate",
+   "kind": "card",
+   "description": "Nummerierte Abbildung mit Rahmen und Bildunterschrift.",
+   "html": "<figure class=\"ds-plate\"><div class=\"ds-plate-frame\"><div style=\"height:120px;background:#e9edf3\"></div></div><figcaption><b>Abb. 1</b> Posteingang im Demo-Modus, Beispieldaten.</figcaption></figure>",
+   "css": ".ds-plate{margin:0}.ds-plate-frame{border:1px solid #18160f;background:#f9faf7;padding:6px}.ds-plate figcaption{margin-top:10px;font:400 .98rem/1.45 'EB Garamond',Garamond,serif;color:#3d3a31}.ds-plate figcaption b{font:700 .78rem/1 Archivo,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#18160f;margin-right:.6em}"
+  },
+  {
+   "name": "Errata Slip",
+   "kind": "custom",
+   "refersTo": "errata-slip",
+   "description": "Ein eingeklebtes Blatt mit nummerierten Berichtigungen.",
+   "html": "<div class=\"ds-slip\"><p class=\"ds-slip-title\">Errata · Postblick 0.3.0</p><ol><li><b>Nicht signiert</b> Windows warnt beim Installieren.</li></ol></div>",
+   "css": ".ds-slip{padding:10px 32px 18px;background:#c7321b;color:#fff8f0;transform:rotate(-.5deg);box-shadow:0 10px 18px -10px rgba(24,22,15,.6);font:400 1.05rem/1.45 'EB Garamond',serif}.ds-slip-title{padding:10px 0 12px;border-bottom:2px solid rgba(255,248,240,.85);font:700 .78rem/1 Archivo,sans-serif;letter-spacing:.14em;text-transform:uppercase}.ds-slip ol{margin:0;padding:12px 0 0 1.4em}.ds-slip b{font:700 .86rem Archivo,sans-serif;letter-spacing:.13em;text-transform:uppercase;margin-right:.6em}"
+  }
+ ],
+ "narrative": {
+  "northStar": "Das aufgeschlagene Handbuch",
+  "overview": "Die Seite ist das Benutzerhandbuch aus einer Software-Box der Neunziger, aufgeschlagen auf dem Schreibtisch: kräftig gefärbte Registerkarten, eine Seite aus milchigem Acetat darüber, Lochung am Rand, eine Kopfzeile mit Kapitel und Seitenzahl. Jedes Kapitel liegt auf seiner eigenen Registerfarbe, und rechts läuft die Leiste der Registerkarten, deren aktuelle herausragt. Ein Handbuch erklärt, statt anzupreisen. Deshalb tragen die Seiten Fakten, Abbildungen mit Nummer und Bildunterschrift und ein ehrliches Errata-Blatt.\n\nDie Dichte ist die eines Nachschlagewerks: schwere, schmal laufende Grotesk-Versalien für Titel, eine Buchschrift für den Lesetext und Monospace nur dort, wo Maschinen sprechen (Tasten, Versionen, Prüfsummen). Bewegung gibt es kaum. Was sich ändert, springt in zwei Schritten um, wie ein umgeklapptes Blatt.",
+  "keyCharacteristics": [
+   "Volle, ungebrochene Registerfarben als Untergrund, eine pro Kapitel.",
+   "Durchscheinende Acetat-Seiten, die die Registerfarbe leicht durchlassen.",
+   "Abbildungen als nummerierte Tafeln mit Rahmen und Bildunterschrift, nie als schwebende Screenshots.",
+   "Die Tastaturschablone aus Acetat als wiedererkennbares Signaturobjekt.",
+   "Zinnoberrot nur für Errata."
+  ],
+  "rules": [
+   {
+    "name": "The One Board Rule",
+    "body": "Ein Kapitel, eine Registerfarbe, vollflächig. Registerfarben werden nie als Akzent über eine fremde Fläche gestreut; auf einer Seite tauchen fremde Register nur als Kante des nächsten Registers und in der Registerleiste auf.",
+    "section": "colors"
+   },
+   {
+    "name": "The Errata Rule",
+    "body": "Zinnober bedeutet „Berichtigung“ und kommt nirgends sonst vor.",
+    "section": "colors"
+   },
+   {
+    "name": "The Machine Voice Rule",
+    "body": "Monospace nur für das, was ein Computer ausgibt oder ein Mensch exakt tippen muss.",
+    "section": "typography"
+   },
+   {
+    "name": "The Margin Head Rule",
+    "body": "Unterüberschriften hängen links in der Marginalspalte neben ihrem Text, nicht darüber.",
+    "section": "typography"
+   },
+   {
+    "name": "The Stacked Material Rule",
+    "body": "Erhöht ist nur, was physisch auf etwas anderem liegt. Inhalte bekommen keine eigenen Kartenschatten.",
+    "section": "elevation"
+   }
+  ],
+  "dos": [
+   "Do jedem Kapitel genau eine Registerfarbe vollflächig geben und das nächste Register unter der Seite hervorschauen lassen.",
+   "Do Abbildungen nummerieren, rahmen und mit einer Bildunterschrift versehen; Demo-Inhalte als Beispieldaten kennzeichnen.",
+   "Do Zustandswechsel als Zweischritt in 90ms (steps(2)) setzen und bei reduzierter Bewegung ganz weglassen.",
+   "Do Fließtext auf höchstens 32em und Einleitungen auf 28em begrenzen."
+  ],
+  "donts": [
+   "Don't Registerfarben als Akzentstreifen, Seitenkanten-Balken oder Verlauf verwenden.",
+   "Don't Zinnober außerhalb von Errata einsetzen.",
+   "Don't weiche Übergänge mit Easing oder sanftes Scrollen verwenden; Blätter springen, sie gleiten nicht.",
+   "Don't gleich große Karten mit Symbol, Überschrift und Text als Seitenstruktur bauen.",
+   "Don't Monospace als Dekor für Fließtext einsetzen."
+  ]
+ }
+}
