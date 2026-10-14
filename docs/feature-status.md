@@ -1,8 +1,8 @@
-# Funktionsvergleich mit Outlook – Postblick 0.2.1
+# Funktionsvergleich mit Outlook – Postblick 0.3.0
 
 „Implementiert“ bezeichnet den vorhandenen Code, nicht eine Prüfung mit echten Konten. Microsoft- und IMAP-Testkonten fehlen. Eine vollständige Outlook-Parität und ein vergleichbares Sicherheitsniveau sind nicht nachgewiesen.
 
-| Bereich | Implementiert in 0.2.1 | Noch offen |
+| Bereich | Implementiert in 0.3.0 | Noch offen |
 | --- | --- | --- |
 | Konten | Verschlüsselter Mehrkontenspeicher, Kontowechsel, gemeinsamer Posteingang aus dem Cache | OAuth anderer Anbieter; Herausgeber-Client-ID für Microsoft |
 | Serverkonfiguration | Vorgaben für Gmail, GMX, WEB.DE, Yahoo, iCloud | Allgemeines Autodiscover; getrennte SMTP-Zugangsdaten |
@@ -28,7 +28,7 @@
 | Updates | Versionsprüfung/Download-Link; Signaturprüfung für spätere automatische Updates vorbereitet | Automatische Installation bleibt ohne Zertifikat und Signaturtests deaktiviert |
 | Sicherheit | Isolation, Mehrkontenverschlüsselung, TLS, PKCE, IPC-Validierung, HTML-Bereinigung | S/MIME, Microsoft-Nachrichtenverschlüsselung, Phishing-/Malware-Prüfung, Unternehmensrichtlinien, Audit |
 
-## Seit 0.2.1 (Entwicklungsstand, noch nicht als Installer veröffentlicht)
+## Neu in 0.3.0
 
 - **Eigene Fenster wie in Outlook:** Doppelklick oder Eingabetaste öffnet eine Nachricht in einem eigenen Lesefenster mit Menüband (Antworten, Löschen, Archivieren, Verschieben, Kategorisieren, Drucken, vorheriges/nächstes Element). Antworten und Weiterleiten aus dem Lesefenster öffnen ein eigenes Verfassenfenster; Entwürfe öffnen sich per Doppelklick zum Bearbeiten. Der Editor lässt sich mit „In neuem Fenster“ ausdocken, optional öffnen alle neuen Nachrichten in eigenen Fenstern. Alle Fenster verwenden dieselbe isolierte, validierte Bridge und bleiben synchron. Schließen des Hauptfensters schließt die Nebenfenster; ungesendeter Text bleibt über die lokale Autosicherung erhalten.
 - **Kontextmenüs:** Rechtsklick auf Nachrichten (Öffnen, Antworten, Gelesen/Ungelesen, Kennzeichnen, Kategorisieren, Anheften, Verschieben, Archivieren, Junk, Löschen, Drucken, EML) und auf Ordner (Alle als gelesen markieren, Synchronisieren, Favorit, Unterordner, Umbenennen, Löschen, Ordner leeren). Textfelder erhalten ein Bearbeiten-Menü mit Rechtschreibvorschlägen.

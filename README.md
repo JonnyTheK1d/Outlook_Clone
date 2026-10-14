@@ -6,13 +6,13 @@ Ein eigenständiger, deutschsprachiger Desktop-Mailclient mit einer an Outlook o
 
 ## Windows installieren
 
-**[Windows-Installer 0.2.1 herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.2.1/Postblick-0.2.1-Windows-x64-Setup.exe)** · [Release und Prüfsumme](https://github.com/JonnyTheK1d/Outlook_Clone/releases/tag/v0.2.1).
+**[Windows-Installer 0.3.0 herunterladen](https://github.com/JonnyTheK1d/Outlook_Clone/releases/download/v0.3.0/Postblick-0.3.0-Windows-x64-Setup.exe)** · [Release und Prüfsumme](https://github.com/JonnyTheK1d/Outlook_Clone/releases/tag/v0.3.0).
 
 Lade die EXE unter **Assets** des Releases herunter. Die vollständige Datei hat ungefähr 114 MiB (119 MB). **„Source code (zip)“ und „Download ZIP“ sind keine Installer.** Repository-Archive können anstelle großer Dateien nur kleine Git-LFS-Verweise enthalten. Eine EXE mit wenigen Bytes oder KB kann Windows nicht ausführen; lösche diesen Download und lade das vollständige Release-Asset.
 
-Als Git-LFS-Kopie liegt die EXE unter [`installers/Postblick-0.2.1-Windows-x64-Setup.exe`](installers/Postblick-0.2.1-Windows-x64-Setup.exe), mit [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`). Der Release-Download benötigt keinen Git-LFS-Client.
+Als Git-LFS-Kopie liegt die EXE unter [`installers/Postblick-0.3.0-Windows-x64-Setup.exe`](installers/Postblick-0.3.0-Windows-x64-Setup.exe), mit [`installers/SHA256SUMS`](installers/SHA256SUMS). Für einen lokalen Git-Checkout mit der vollständigen Datei benötigst du Git LFS (`git lfs install`, danach `git lfs pull`). Der Release-Download benötigt keinen Git-LFS-Client.
 
-Der Installer liegt nach dem Build unter `release/Postblick-0.2.1-Windows-x64-Setup.exe`. Unterstützt werden Windows 10/11 x64. Starte den Installer, wähle einen Installationsort und öffne Postblick. Die App beginnt mit eindeutig gekennzeichneten lokalen Demo-Daten. Im Demo-Modus wird keine E-Mail verschickt.
+Der Installer liegt nach dem Build unter `release/Postblick-0.3.0-Windows-x64-Setup.exe`. Unterstützt werden Windows 10/11 x64. Starte den Installer, wähle einen Installationsort und öffne Postblick. Die App beginnt mit eindeutig gekennzeichneten lokalen Demo-Daten. Im Demo-Modus wird keine E-Mail verschickt.
 
 Der Installer ist **nicht digital signiert**; Windows kann deshalb eine SmartScreen-Warnung anzeigen. Herausgeberzertifikat und unabhängiger Sicherheitstest fehlen. Windows-Installation, Start und Deinstallation werden im Release-Workflow geprüft; echte Kontoabläufe benötigen zusätzliche Tests. Zertifikats- oder Sicherheitswarnungen sollten nicht pauschal abgeschaltet werden.
 
@@ -20,7 +20,7 @@ Der Installer ist **nicht digital signiert**; Windows kann deshalb eine SmartScr
 
 0.2.1 erweitert Postblick: mehrere Konten, Hintergrundabruf, eigene Ordner, Kategorien, Mehrfachaktionen, Bcc, Signaturen, Vorlagen, bereinigtes HTML, formatierte Nachrichten, automatische lokale Entwürfe, Versandwarteschlange, zusätzliche Kalender, Serien, Erinnerungen, Microsoft To Do und Datenexport.
 
-Im aktuellen Entwicklungsstand (nach 0.2.1) öffnen sich Nachrichten per Doppelklick in eigenen Lese- und Verfassenfenstern; hinzu kommen Kontextmenüs für Nachrichten und Ordner, Outlook-Tastenkürzel, Mehrfachauswahl mit Strg/Umschalt, Drag-and-drop auf alle Ordner, ein Menüband „Ansicht“ sowie Sortierung und Datumsgruppen.
+0.3.0 bringt Outlook-Bedienung: Nachrichten öffnen sich Nachrichten per Doppelklick in eigenen Lese- und Verfassenfenstern; hinzu kommen Kontextmenüs für Nachrichten und Ordner, Outlook-Tastenkürzel, Mehrfachauswahl mit Strg/Umschalt, Drag-and-drop auf alle Ordner, ein Menüband „Ansicht“ sowie Sortierung und Datumsgruppen.
 
 **Die gesamte angeforderte Outlook-Funktionsliste ist noch nicht umgesetzt.** [docs/feature-status.md](docs/feature-status.md) unterscheidet vorhandenen Code, Grenzen, fehlende Implementierung und externe Voraussetzungen.
 
