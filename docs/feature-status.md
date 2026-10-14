@@ -28,7 +28,7 @@
 | Updates | Versionsprüfung/Download-Link; Signaturprüfung für spätere automatische Updates vorbereitet | Automatische Installation bleibt ohne Zertifikat und Signaturtests deaktiviert |
 | Sicherheit | Isolation, Mehrkontenverschlüsselung, TLS, PKCE, IPC-Validierung, HTML-Bereinigung | S/MIME, Microsoft-Nachrichtenverschlüsselung, Phishing-/Malware-Prüfung, Unternehmensrichtlinien, Audit |
 
-## Seit 0.3.0 (Entwicklungsstand, noch nicht als Installer veröffentlicht)
+## Neu in 0.3.1 (Installer gebaut, Release noch nicht veröffentlicht)
 
 - **Rückgängig:** Nach Verschieben, Archivieren oder Löschen bietet die Meldung „Rückgängig“ an, alternativ Strg+Z. Bei Microsoft-Konten und IMAP-Servern mit UIDPLUS wird die neue Nachrichtenkennung übernommen; ohne diese Angabe des Servers wird kein Rückgängig angeboten. Endgültiges Löschen bleibt endgültig.
 - **Absender:** „Zu Kontakten hinzufügen“ und „Absender blockieren“ im Lesebereich und im Kontextmenü. Blockieren legt eine Junk-Regel an und verschiebt vorhandene Nachrichten des Absenders aus dem Posteingang.
