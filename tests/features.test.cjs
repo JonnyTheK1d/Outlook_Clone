@@ -11,11 +11,11 @@ Module._load = function(id,...args) {
 };
 const { Store } = require('../dist-electron/electron/store');
 const { MicrosoftProvider } = require('../dist-electron/electron/providers');
-const { handleCommand, flushOutbox, calendarText, csvRows } = require('../dist-electron/electron/commands');
+const { handleCommand, flushOutbox, calendarText, csvRows, printDocument } = require('../dist-electron/electron/commands');
 Module._load=original;
 const { normalize, localCommand, matches, occurrences, sortMails, dateGroup, groupLabel, conversationKey } = require('../dist-electron/shared/features');
 const { createDemo } = require('../dist-electron/shared/demo');
-const { commandSchema, windowRequestSchema } = require('../dist-electron/electron/validation');
+const { commandSchema, windowRequestSchema, attachmentDataSchema } = require('../dist-electron/electron/validation');
 const { parseMailto } = require('../dist-electron/electron/mailto');
 const originalFetch = global.fetch; after(()=>{global.fetch=originalFetch;});
 const credentials = { type:'microsoft',clientId:'12345678-1234-1234-1234-123456789abc',accessToken:'private-token',refreshToken:'private-refresh',expiresAt:Date.now()+3600000 };
@@ -179,4 +179,51 @@ test('view preferences and pop-out window requests are validated',()=>{
   assert.ok(windowRequestSchema.safeParse({kind:'compose',message:{to:'a@example.com',cc:'',subject:'Hi',body:'',attachments:[]},existing:[{id:'x',name:'big.bin',size:60*1024*1024}]}).success);
   assert.equal(windowRequestSchema.safeParse({kind:'mail',id:'x',url:'https://evil.invalid'}).success,false);
   assert.equal(windowRequestSchema.safeParse({kind:'settings'}).success,false);
+});
+
+test('moves through a provider keep the new id and can be undone once',async()=>{
+  const store={state:normalize(createDemo()),queuedFiles:{},save:async()=>{},view:()=>store.state};
+  store.state.mode='microsoft';
+  const calls=[];let counter=0;
+  const provider={action:async(mail,action)=>{calls.push([mail.id,action.kind,action.folder]);return action.kind==='move'?'moved-'+(++counter):undefined;}};
+  const ctx={store,provider:()=>provider,save:async()=>store.state};
+  await handleCommand(ctx,{kind:'batch',ids:['demo-1','demo-2'],action:'move',folder:'archive'});
+  assert.deepEqual(store.state.mails.filter(m=>m.folder==='archive').map(m=>m.id).sort(),['moved-1','moved-2']);
+  assert.equal(store.state.mails.some(m=>m.id==='demo-1'),false);
+  assert.deepEqual(store.state.undo.moves,[{id:'moved-1',folder:'inbox'},{id:'moved-2',folder:'inbox'}]);
+  await handleCommand(ctx,{kind:'batch',ids:['moved-1'],action:'read'});
+  assert.ok(store.state.undo,'marking as read keeps the undo option');
+  await handleCommand(ctx,{kind:'undo'});
+  assert.deepEqual(calls.slice(-2),[['moved-1','move','inbox'],['moved-2','move','inbox']]);
+  assert.equal(store.state.mails.filter(m=>m.folder==='inbox'&&m.id.startsWith('moved-')).length,2);
+  assert.equal(store.state.undo,undefined);
+  await assert.rejects(handleCommand(ctx,{kind:'undo'}),/rückgängig/);
+  // Without a reported id (IMAP without UIDPLUS) the move is not offered for undo.
+  const noIds={action:async()=>undefined};
+  await handleCommand({...ctx,provider:()=>noIds},{kind:'batch',ids:['demo-3'],action:'delete'});
+  assert.equal(store.state.undo,undefined);assert.equal(store.state.mails.some(m=>m.id==='demo-3'),false);
+});
+test('local moves are undone in the browser demo',()=>{
+  const state=normalize(createDemo());
+  localCommand(state,{kind:'batch',ids:['demo-1'],action:'delete'},()=>'');
+  assert.equal(state.mails.find(m=>m.id==='demo-1').folder,'trash');
+  localCommand(state,{kind:'undo'},()=>'');
+  assert.equal(state.mails.find(m=>m.id==='demo-1').folder,'inbox');assert.equal(state.undo,undefined);
+  assert.ok(commandSchema.safeParse({kind:'undo'}).success);
+});
+test('printing keeps formatting but drops active content and escapes headers',()=>{
+  const html=printDocument({id:'x',folder:'inbox',sender:'Eve <script>',address:'eve@example.com',to:'a@example.com',cc:'b@example.com',subject:'Hallo <b>',body:'',date:'2026-10-14T10:00:00Z',read:true,flagged:false,attachments:[{id:'1',name:'plan.pdf',size:2048}],html:'<p><strong>Fett</strong></p><script>alert(1)</script><meta http-equiv="refresh" content="0;url=https://evil.invalid"><img src="x" onerror="alert(1)"><iframe src="https://evil.invalid"></iframe><form action="https://evil.invalid"><input></form>'});
+  assert.match(html,/<strong>Fett<\/strong>/);
+  assert.doesNotMatch(html,/<script|<iframe|<form|refresh|onerror/i);
+  assert.match(html,/Hallo &lt;b&gt;/);assert.match(html,/Eve &lt;script&gt;/);
+  assert.match(html,/plan\.pdf \(2 KB\)/);assert.match(html,/Cc/);
+  assert.match(html,/default-src 'none'/);
+  const text=printDocument({id:'y',folder:'inbox',sender:'',address:'a@example.com',to:'b@example.com',subject:'Text',body:'<b>kein HTML</b>',date:'2026-10-14T10:00:00Z',read:true,flagged:false,attachments:[]});
+  assert.match(text,/<pre>&lt;b&gt;kein HTML&lt;\/b&gt;<\/pre>/);
+});
+test('dropped attachment data is limited and typed',()=>{
+  assert.ok(attachmentDataSchema.safeParse({name:'a.txt',data:new Uint8Array([1,2,3])}).success);
+  assert.equal(attachmentDataSchema.safeParse({name:'a.txt',data:'/etc/passwd'}).success,false);
+  assert.equal(attachmentDataSchema.safeParse({name:'a.txt',data:new Uint8Array(20*1024*1024+1)}).success,false);
+  assert.equal(attachmentDataSchema.safeParse({name:'a.txt',data:new Uint8Array(1),path:'/x'}).success,false);
 });

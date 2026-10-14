@@ -23,6 +23,8 @@ export interface State {
   unifiedMails?: Mail[];
   workingDraft?: Outgoing;
   calendars?: { id: string; name: string; visible: boolean; isDefault?: boolean; canEdit?: boolean }[];
+  // The most recent move, with each message's current id and its previous folder.
+  undo?: { moves: { id: string; folder: Folder }[] };
 }
 export interface Outgoing { to: string; cc: string; subject: string; body: string; attachments: Attachment[]; draftId?: string; bcc?: string; html?: string; replyId?: string; replyAll?: boolean; forwardId?: string; importance?: 'low' | 'normal' | 'high'; readReceipt?: boolean; deliveryReceipt?: boolean; scheduledAt?: string; retainedAttachments?: string[]; inReplyTo?: string; references?: string }
 export type SortKey = 'date' | 'from' | 'subject' | 'importance' | 'flagged';
@@ -37,6 +39,7 @@ export type Command =
  | { kind: 'metadata'; ids: string[]; category?: string; pinned?: boolean }
  | { kind: 'rules'; value: Rule[] }
  | { kind: 'sync-all' }
+ | { kind: 'undo' }
  | { kind: 'queue'; message: Outgoing }
  | { kind: 'autosave'; message: Outgoing | null }
  | { kind: 'outbox'; operation: 'send' | 'cancel'; id: string }
@@ -69,4 +72,5 @@ export interface Bridge {
   manage(command: Command): Promise<State>;
   onState?(callback: (state: State) => void): () => void;
   openWindow?(request: WindowRequest): Promise<void>; windowPayload?(): Promise<WindowRequest | null>;
+  attachData?(name: string, data: Uint8Array): Promise<Attachment>;
 }

@@ -38,6 +38,8 @@ const browser: Bridge = {
     const hash = request.kind === 'mail' ? 'mail=' + encodeURIComponent(request.id) + (request.accountId ? '&account=' + encodeURIComponent(request.accountId) : '') : 'compose=' + token;
     if (!window.open(location.href.split('#')[0] + '#' + hash, '_blank', 'popup,width=1000,height=820')) throw new Error('Das Fenster wurde vom Browser blockiert.');
   },
+  // Demo messages keep attachment names and sizes only; nothing leaves the browser.
+  attachData: async (name, data) => ({ id: crypto.randomUUID(), name, size: data.byteLength }),
   windowPayload: async () => {
     const token = new URLSearchParams(location.hash.slice(1)).get('compose'); if (!token) return null;
     const raw = sessionStorage.getItem(windowKey + token) || localStorage.getItem(windowKey + token); if (!raw) return null;

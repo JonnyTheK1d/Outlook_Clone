@@ -92,6 +92,21 @@ test('native desktop: pop-out read and compose windows share the validated bridg
     assert.ok(state.mails.some(m => m.folder === 'sent' && m.subject === 'WG: Design-Review · Donnerstag'));
     // Escape closes the read window, as in Outlook.
     await Promise.all([reader.waitForEvent('close'), reader.keyboard.press('Escape').catch(() => {})]);
+    // Dropped files arrive as bytes, are validated and travel with a sent message.
+    const dropped = await page.evaluate(async () => {
+      const attachment = await window.postblick.attachData('bericht.txt', new TextEncoder().encode('Inhalt'));
+      const rejected = await window.postblick.attachData('x', '/etc/passwd').then(() => false, () => true);
+      const sent = await window.postblick.send({ to: 'team@example.com', cc: '', subject: 'Mit Anhang', body: 'Siehe Anhang', attachments: [attachment] });
+      return { attachment, rejected, names: sent.mails.find(m => m.subject === 'Mit Anhang').attachments.map(a => a.name) };
+    });
+    assert.equal(dropped.attachment.size, 6); assert.equal(dropped.rejected, true); assert.deepEqual(dropped.names, ['bericht.txt']);
+    // A move can be undone through the native bridge.
+    const undone = await page.evaluate(async () => {
+      await window.postblick.manage({ kind: 'batch', ids: ['demo-3'], action: 'move', folder: 'archive' });
+      const state = await window.postblick.manage({ kind: 'undo' });
+      return state.mails.find(m => m.id === 'demo-3').folder;
+    });
+    assert.equal(undone, 'inbox');
     assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
   } finally { if (app) await app.close(); await rm(profile, { recursive: true, force: true }); }
 });

@@ -11,7 +11,8 @@ export interface MailFolder { id: string; name: string; parent?: string }
 export interface Provider {
   profile(): Promise<{ email: string; name: string }>;
   list(folder: Folder, query?: string): Promise<Mail[]>;
-  action(mail: Mail, action: MailAction): Promise<void>;
+  // Resolves to the message's new id after a move when the server reports it.
+  action(mail: Mail, action: MailAction): Promise<string | void>;
   send(message: Outgoing, files: FileAttachment[]): Promise<void>;
   draft(message: Outgoing, files: FileAttachment[]): Promise<string>;
   attachment(mail: Mail, id: string): Promise<Buffer>;
@@ -101,7 +102,7 @@ export class MicrosoftProvider implements Provider {
     const route = '/messages/' + segment(mail.id);
     if (action.kind === 'read') await this.request(route, 'PATCH', { isRead: action.value });
     if (action.kind === 'flag') await this.request(route, 'PATCH', { flag: { flagStatus: action.value ? 'flagged' : 'notFlagged' } });
-    if (action.kind === 'move') await this.request(route + '/move', 'POST', { destinationId: graphFolder(action.folder) });
+    if (action.kind === 'move') { const moved = await this.request(route + '/move', 'POST', { destinationId: graphFolder(action.folder) }); return typeof moved?.id === 'string' ? moved.id : undefined; }
     if (action.kind === 'delete') await this.request(route, 'DELETE');
   }
   async categories(id: string, categories: string[]) { await this.request('/messages/' + segment(id), 'PATCH', { categories }); }
@@ -245,12 +246,18 @@ export class ImapProvider implements Provider {
       } finally { lock.release(); }
     });
   }
-  async action(mail: Mail, action: MailAction) {
-    await this.session(async (client, folders) => {
+  async action(mail: Mail, action: MailAction): Promise<string | void> {
+    return this.session(async (client, folders) => {
       const lock = await client.getMailboxLock(this.mailbox(folders, mail.folder));
       try {
         if (action.kind === 'read' || action.kind === 'flag') { const flag = action.kind === 'read' ? '\\Seen' : '\\Flagged'; if (action.value) await client.messageFlagsAdd(uid(mail.id, client), [flag], { uid: true }); else await client.messageFlagsRemove(uid(mail.id, client), [flag], { uid: true }); }
-        if (action.kind === 'move') await client.messageMove(uid(mail.id, client), this.mailbox(folders, action.folder), { uid: true });
+        if (action.kind === 'move') {
+          const source = uid(mail.id, client);
+          const moved = await client.messageMove(source, this.mailbox(folders, action.folder), { uid: true });
+          // Without UIDPLUS the server does not tell us the new UID; the move then cannot be undone.
+          const target = moved ? moved.uidMap?.get(Number(source)) : undefined;
+          return moved && moved.uidValidity !== undefined && target ? action.folder + ':' + moved.uidValidity + ':' + target : undefined;
+        }
         if (action.kind === 'delete') await client.messageDelete(uid(mail.id, client), { uid: true });
       } finally { lock.release(); }
     });

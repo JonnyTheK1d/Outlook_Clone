@@ -48,6 +48,19 @@ export async function flushOutbox(ctx: Context, only?: string) {
     await ctx.store.save();
   }
 }
+// Moves one message and keeps it cached under its new id so the move can be undone.
+export async function moveMail(state: State, provider: Provider | null, mail: Mail, folder: string): Promise<{ id: string; folder: string } | undefined> {
+  const previous = mail.folder;
+  if (provider && !mail.id.startsWith('local:')) {
+    const id = await provider.action(mail, { id: mail.id, kind: 'move', folder });
+    state.mails = state.mails.filter(m => m.id !== mail.id);
+    if (!id) return undefined;
+    state.mails.push({ ...mail, id, folder });
+    return { id, folder: previous };
+  }
+  mail.folder = folder;
+  return { id: mail.id, folder: previous };
+}
 export async function applyRules(ctx: Context) {
   for (const mail of [...ctx.store.state.mails.filter(m => m.folder === 'inbox')]) {
     const rule = ctx.store.state.rules?.find(r => r.enabled && (!r.from || mail.address.toLowerCase().includes(r.from.toLowerCase())) && (!r.subject || mail.subject.toLowerCase().includes(r.subject.toLowerCase())));
@@ -63,6 +76,9 @@ export async function applyRules(ctx: Context) {
 export async function handleCommand(ctx: Context, value: unknown): Promise<State> {
   const command = commandSchema.parse(value) as Command;
   const { store } = ctx; normalize(store.state); delete store.state.notice;
+  // Undo reverts the most recent move; a new move replaces it, other commands keep it.
+  const undo = store.state.undo;
+  if (command.kind === 'undo' || (command.kind === 'batch' && (command.action === 'move' || command.action === 'delete'))) delete store.state.undo;
   let provider = ctx.provider();
   if (command.kind === 'account') {
     const before = { state: store.state, credentials: store.credentials, accounts: { ...store.accounts } };
@@ -102,6 +118,7 @@ export async function handleCommand(ctx: Context, value: unknown): Promise<State
     localCommand(store.state, command, randomUUID);
   } else if (command.kind === 'batch') {
     if (command.action === 'move') { if (!command.folder) throw new Error('Bitte einen Zielordner wählen.'); ensureFolder(store.state, command.folder); }
+    const moves: { id: string; folder: string }[] = [];
     for (const id of command.ids) {
       const mail = store.state.mails.find(m => m.id === id); if (!mail) throw new Error('Diese Nachricht ist nicht mehr vorhanden.');
       if (command.action === 'purge') {
@@ -109,11 +126,25 @@ export async function handleCommand(ctx: Context, value: unknown): Promise<State
         if (provider && !id.startsWith('local:')) await provider.action(mail, { id, kind: 'delete' });
         applyLocalAction(store.state, { id, kind: 'delete' }); await store.save(); continue;
       }
-      const action = command.action === 'move' || command.action === 'delete' ? { id, kind: 'move' as const, folder: command.action === 'delete' ? 'trash' : command.folder! } : { id, kind: (command.action === 'flag' || command.action === 'unflag' ? 'flag' : 'read') as 'flag' | 'read', value: command.action === 'read' || command.action === 'flag' };
-      if (provider && !id.startsWith('local:')) { await provider.action(mail, action); if (action.kind === 'move') store.state.mails = store.state.mails.filter(m => m.id !== id); else applyLocalAction(store.state, action); }
-      else applyLocalAction(store.state, action);
+      if (command.action === 'move' || command.action === 'delete') {
+        const moved = await moveMail(store.state, provider, mail, command.action === 'delete' ? 'trash' : command.folder!);
+        if (moved) { moves.push(moved); store.state.undo = { moves }; }
+        await store.save(); continue;
+      }
+      const action = { id, kind: (command.action === 'flag' || command.action === 'unflag' ? 'flag' : 'read') as 'flag' | 'read', value: command.action === 'read' || command.action === 'flag' };
+      if (provider && !id.startsWith('local:')) await provider.action(mail, action);
+      applyLocalAction(store.state, action);
       await store.save(); // Preserve successful work if a later batch element fails.
     }
+  } else if (command.kind === 'undo') {
+    if (!undo?.moves.length) throw new Error('Diese Aktion kann nicht mehr rückgängig gemacht werden.');
+    let missing = 0;
+    for (const move of undo.moves) {
+      const mail = store.state.mails.find(m => m.id === move.id);
+      if (!mail) { missing++; continue; }
+      await moveMail(store.state, provider, mail, move.folder); await store.save();
+    }
+    store.state.notice = missing ? `Rückgängig gemacht. ${missing} Nachricht(en) waren nicht mehr vorhanden.` : 'Rückgängig gemacht.';
   } else if (command.kind === 'search') {
     if (!provider) throw new Error('Diese Suche benötigt ein verbundenes Konto.');
     const folders = command.all ? [...standard,...store.state.folders!.map(f=>f.id)] : [command.folder];
@@ -160,11 +191,13 @@ export async function handleCommand(ctx: Context, value: unknown): Promise<State
   else if (command.kind === 'import') await importData(ctx, command.format);
   else if (command.kind === 'print') {
     const mail = store.state.mails.find(m => m.id === command.id); if (!mail) throw new Error('Diese Nachricht ist nicht vorhanden.');
-    const print = new BrowserWindow({ show: false, webPreferences: { sandbox: true, nodeIntegration: false, contextIsolation: true } });
+    // Untrusted HTML is printed with JavaScript disabled, no network and no navigation.
+    const print = new BrowserWindow({ show: false, webPreferences: { sandbox: true, nodeIntegration: false, contextIsolation: true, javascript: false, webSecurity: true } });
     try {
       print.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
       print.webContents.on('will-navigate', event => event.preventDefault());
-      await print.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent('<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'"><style>body{font-family:Arial;margin:24px}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><h1>' + escapeHtml(mail.subject) + '</h1><p>' + escapeHtml(mail.address + ' → ' + mail.to + ' · ' + mail.date) + '</p><pre>' + escapeHtml(mail.body) + '</pre>'));
+      print.webContents.on('will-frame-navigate', event => { if (!event.isMainFrame || event.url !== print.webContents.getURL()) event.preventDefault(); });
+      await print.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(printDocument(mail)));
       await new Promise<void>((resolve,reject) => print.webContents.print({ silent: false, printBackground: false }, success => success ? resolve() : reject(new Error('Der Druck wurde abgebrochen oder ist fehlgeschlagen.'))));
     } finally { print.destroy(); }
   } else if (command.kind === 'open-link') {
@@ -185,6 +218,16 @@ export async function handleCommand(ctx: Context, value: unknown): Promise<State
     store.state.notice = newer ? 'Version ' + version + ' ist verfügbar. Öffne die Releases zum Download.' : 'Postblick ist auf dem aktuellen veröffentlichten Stand.';
   }
   return ctx.save();
+}
+const activeContent = /<(script|iframe|frame|object|embed|form|link|meta|base|svg|math|template)\b[\s\S]*?(?:<\/\1\s*>|>)/gi;
+export function printDocument(mail: Mail): string {
+  const row = (label: string, value?: string) => value ? '<tr><th>' + label + '</th><td>' + escapeHtml(value) + '</td></tr>' : '';
+  const date = new Date(mail.date).toLocaleString('de-DE', { dateStyle: 'full', timeStyle: 'short' });
+  const attachments = mail.attachments.map(a => a.name + ' (' + Math.ceil(a.size / 1024) + ' KB)').join(', ');
+  const body = mail.html ? mail.html.replace(activeContent, '').replace(/\son\w+\s*=/gi, ' data-removed=') : '<pre>' + escapeHtml(mail.body) + '</pre>';
+  return '<!doctype html><html lang="de"><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; style-src \'unsafe-inline\'; img-src data:; form-action \'none\'"><title>' + escapeHtml(mail.subject) + '</title>'
+    + '<style>body{font-family:"Segoe UI",Arial,sans-serif;margin:24px;color:#111;font-size:13px}h1{font-size:20px;margin:0 0 12px}table.meta{border-collapse:collapse;margin-bottom:16px;width:100%;border-bottom:1px solid #999}table.meta th{text-align:left;padding:3px 12px 3px 0;width:90px;vertical-align:top}table.meta td{padding:3px 0;overflow-wrap:anywhere}pre{white-space:pre-wrap;overflow-wrap:anywhere;font-family:inherit}img{max-width:100%}</style></head><body>'
+    + '<h1>' + escapeHtml(mail.subject) + '</h1><table class="meta">' + row('Von', mail.sender ? mail.sender + ' <' + mail.address + '>' : mail.address) + row('Gesendet', date) + row('An', mail.to) + row('Cc', mail.cc) + row('Anlagen', attachments) + '</table>' + body + '</body></html>';
 }
 export function csvRows(content: string): string[][] {
   const rows: string[][] = []; let row: string[] = []; let cell = ''; let quoted = false;

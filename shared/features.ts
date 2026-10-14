@@ -38,6 +38,11 @@ export function localCommand(state: State, command: Command, uuid: () => string)
       state.folders = state.folders!.filter(f => f.id !== command.id);
     }
   }
+  if (command.kind === 'batch' && (command.action === 'move' || command.action === 'delete')) state.undo = { moves: state.mails.filter(m => command.ids.includes(m.id)).map(m => ({ id: m.id, folder: m.folder })) };
+  if (command.kind === 'undo') {
+    for (const move of state.undo?.moves || []) { const mail = state.mails.find(m => m.id === move.id); if (mail) mail.folder = move.folder; }
+    delete state.undo;
+  }
   if (command.kind === 'batch') for (const mail of state.mails.filter(m => command.ids.includes(m.id))) {
     if (command.action === 'read' || command.action === 'unread') mail.read = command.action === 'read';
     if (command.action === 'flag' || command.action === 'unflag') mail.flagged = command.action === 'flag';

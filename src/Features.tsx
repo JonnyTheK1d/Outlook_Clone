@@ -23,7 +23,7 @@ export function Organize({ state, mail, folder, run, busy, selectedIds }: { stat
       <span>{ids.length} ausgewählt</span>
       <select aria-label="Nachrichten verschieben" defaultValue="" disabled={busy || !ids.length} onChange={e=>{const value=e.target.value;if(value)void run(()=>api.manage({kind:'batch',ids,action:'move',folder:value}));e.target.value='';}}><option value="">Verschieben nach …</option>{folderOptions(state)}</select>
       <select aria-label="Kategorie zuweisen" defaultValue="" disabled={busy || !ids.length} onChange={e=>{void run(()=>api.manage({kind:'metadata',ids,category:e.target.value==='__none__'?'':e.target.value}));e.target.value='';}}><option value="">Kategorie …</option><option value="__none__">Keine Kategorie</option>{state.preferences?.categories.map(c=><option key={c}>{c}</option>)}</select>
-      <button disabled={busy || !ids.length} onClick={()=>run(()=>api.manage({kind:'metadata',ids,pinned:!mail?.pinned}))}>Anheften / lösen</button>
+      <button disabled={busy || !ids.length} onClick={()=>run(()=>api.manage({kind:'metadata',ids,pinned:!ids.every(id=>state.mails.find(m=>m.id===id)?.pinned)}))}>Anheften / lösen</button>
       <button disabled={busy || !ids.length} onClick={()=>run(()=>api.manage({kind:'batch',ids,action:'read'}))}>Alle gelesen</button>
       <button disabled={busy || !ids.length} onClick={()=>run(()=>api.manage({kind:'batch',ids,action:'unread'}))}>Alle ungelesen</button>
       <button disabled={busy || !ids.length} onClick={()=>run(()=>api.manage({kind:'batch',ids,action:'delete'}))}>In Papierkorb</button>
@@ -67,7 +67,20 @@ const plainHtml = (text: string) => text.replaceAll('&','&amp;').replaceAll('<',
 export function EnhancedComposer({message,existing=[],state,run,busy,close,dirty,popOut}:{message:Outgoing;existing?:Attachment[];state:State;run:Run;busy:boolean;close:()=>void;dirty:(message:Outgoing)=>void;popOut?:()=>void}) {
   const [rich,setRich] = useState(!!message.html); const [error,setError] = useState('');const [schedule,setSchedule] = useState(''); const [retained,setRetained] = useState(existing.map(a=>a.id));
   const richRef = useRef<HTMLDivElement>(null); const latest = useRef(message); latest.current=message;
-  const [autosaved,setAutosaved]=useState(false);
+  const [autosaved,setAutosaved]=useState(false);const [dropping,setDropping]=useState(false);
+  // Dropped files travel as bytes; like the file picker, at most 20 new files and 20 MB in total.
+  const addFiles=async(files:File[])=>{
+    setError('');const added:Attachment[]=[];
+    try{
+      if(!api.attachData)throw new Error('Das Ablegen von Dateien ist hier nicht verfügbar. Bitte „Anhang“ verwenden.');
+      let count=latest.current.attachments.length,total=latest.current.attachments.reduce((n,a)=>n+a.size,0);
+      for(const file of files){
+        if(count+1>20 || total+file.size>20*1024*1024)throw new Error('Anhänge: maximal 20 MB und 20 Dateien.');
+        added.push(await api.attachData(file.name,new Uint8Array(await file.arrayBuffer())));count++;total+=file.size;
+      }
+    }catch(e){setError(e instanceof Error && e.message!=='' ? e.message : 'Die Datei konnte nicht gelesen werden.');}
+    finally{if(added.length)change('attachments',[...latest.current.attachments,...added]);}
+  };
   const change=(field:keyof Outgoing,value:unknown)=>{setAutosaved(false);dirty({...latest.current,[field]:value});};
   useEffect(()=>{if(richRef.current && richRef.current.innerHTML!==sanitizeMail(message.html || plainHtml(message.body)))richRef.current.innerHTML=sanitizeMail(message.html || plainHtml(message.body));},[rich]); // editing owns DOM after initial render
   useEffect(()=>{
@@ -81,7 +94,7 @@ export function EnhancedComposer({message,existing=[],state,run,busy,close,dirty
     const value={...message,retainedAttachments:message.draftId?retained:undefined,scheduledAt:schedule?new Date(schedule).toISOString():undefined};
     if (await run(()=>draft?api.saveDraft(value):queue||schedule?api.manage({kind:'queue',message:value}):api.send(value),draft?'Entwurf gespeichert.':queue||schedule?'Nachricht in Warteschlange gespeichert.':state.mode==='demo'?'Nachricht lokal abgelegt. Es wurde keine E-Mail verschickt.':'Nachricht zum Versand angenommen.')) { await run(()=>api.manage({kind:'autosave',message:null}));close(); }
   };
-  return <form className="composer" onSubmit={submit} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();e.currentTarget.requestSubmit();}}}>
+  return <form className={'composer'+(dropping?' drop-active':'')} onSubmit={submit} onDragOver={e=>{if(e.dataTransfer.types.includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy';setDropping(true);}}} onDragLeave={e=>{if(!e.currentTarget.contains(e.relatedTarget as Node))setDropping(false);}} onDrop={e=>{if(!e.dataTransfer.files.length)return;e.preventDefault();setDropping(false);void addFiles([...e.dataTransfer.files]);}} onKeyDown={e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();e.currentTarget.requestSubmit();}}}>
     <div className="compose-account">Von: {state.email} · {state.mode==='demo'?'Demo · nur lokal':'Verbundenes Konto'}</div>
     <datalist id="recipients">{state.contacts.map(c=><option key={c.id} value={c.email}>{c.name}</option>)}</datalist>
     <label className="compose-field"><span>An</span><input list="recipients" aria-label="Empfänger" value={message.to} onChange={e=>change('to',e.target.value)} maxLength={2000}/></label>
@@ -100,18 +113,49 @@ export function EnhancedComposer({message,existing=[],state,run,busy,close,dirty
     {!!existing.length&&<div className="compose-attachments">{existing.filter(a=>retained.includes(a.id)).map(a=><span className="attachment-pill" key={a.id}>{a.name}<button type="button" aria-label={a.name+' entfernen'} onClick={()=>setRetained(retained.filter(id=>id!==a.id))}>×</button></span>)}</div>}
     <div className="compose-attachments">{message.attachments.map(a=><span className="attachment-pill" key={a.id}>{a.name}<button type="button" aria-label={a.name+' entfernen'} onClick={()=>change('attachments',message.attachments.filter(x=>x.id!==a.id))}>×</button></span>)}</div>
     {error&&<p role="alert" className="form-error">{error}</p>}
-    <div className="modal-actions"><button className="primary-button" type="submit" disabled={busy}>{schedule?'Geplant senden':state.mode==='demo'?'Lokal senden':'Senden'}</button><button className="secondary-button" type="button" disabled={busy} onClick={e=>submit(e,true)}>Entwurf speichern</button><button className="secondary-button" type="button" disabled={busy} onClick={e=>submit(e,false,true)}>In Postausgang</button><button className="secondary-button" type="button" disabled={busy} onClick={async()=>{try{const files=await api.pickAttachments();const combined=[...message.attachments,...files];if(combined.reduce((n,a)=>n+a.size,0)>20*1024*1024 || combined.length>20)throw new Error('Anhänge: maximal 20 MB und 20 Dateien.');change('attachments',combined);}catch(e){setError((e as Error).message);}}}>Anhang</button></div><p className="inline-note">{autosaved?'Textentwurf automatisch lokal gespeichert.':'Entwurf wird nach einer Schreibpause lokal gespeichert.'} · max. 20 MB Anhänge · Strg+Enter: Senden</p>
+    <div className="modal-actions"><button className="primary-button" type="submit" disabled={busy}>{schedule?'Geplant senden':state.mode==='demo'?'Lokal senden':'Senden'}</button><button className="secondary-button" type="button" disabled={busy} onClick={e=>submit(e,true)}>Entwurf speichern</button><button className="secondary-button" type="button" disabled={busy} onClick={e=>submit(e,false,true)}>In Postausgang</button><button className="secondary-button" type="button" disabled={busy} onClick={async()=>{try{const files=await api.pickAttachments();const combined=[...message.attachments,...files];if(combined.reduce((n,a)=>n+a.size,0)>20*1024*1024 || combined.length>20)throw new Error('Anhänge: maximal 20 MB und 20 Dateien.');change('attachments',combined);}catch(e){setError((e as Error).message);}}}>Anhang</button></div><p className="inline-note">{autosaved?'Textentwurf automatisch lokal gespeichert.':'Entwurf wird nach einer Schreibpause lokal gespeichert.'} · max. 20 MB Anhänge, Dateien auch per Drag-and-drop · Strg+Enter: Senden</p>
   </form>;
 }
-export function EnhancedCalendar({events,month,setMonth,query,edit}:{events:CalendarEvent[];month:Date;setMonth:(d:Date)=>void;query:string;edit:(e?:CalendarEvent,day?:string)=>void}) {
+const HOUR=44;
+const minutesOf=(value:string)=>Number(value.slice(11,13))*60+Number(value.slice(14,16));
+const weekdays=['Mo','Di','Mi','Do','Fr','Sa','So'];
+export function EnhancedCalendar({events,month,setMonth,query,edit}:{events:CalendarEvent[];month:Date;setMonth:(d:Date)=>void;query:string;edit:(e?:CalendarEvent,day?:string,time?:string)=>void}) {
   const [view,setView]=useState<'month'|'week'|'day'>('month');
-  const offset=(month.getDay()+6)%7;
-  const cells=view==='month'?Array.from({length:42},(_,i)=>new Date(month.getFullYear(),month.getMonth(),i-offset+1)):Array.from({length:view==='week'?7:1},(_,i)=>new Date(month.getFullYear(),month.getMonth(),month.getDate()-(view==='week'?offset:0)+i));
+  const scrollRef=useRef<HTMLDivElement>(null);
+  // The month grid starts on the Monday before the 1st, whatever day "month" points at.
+  const first=new Date(month.getFullYear(),month.getMonth(),1);
+  const cells=view==='month'?Array.from({length:42},(_,i)=>new Date(first.getFullYear(),first.getMonth(),i-(first.getDay()+6)%7+1)):Array.from({length:view==='week'?7:1},(_,i)=>new Date(month.getFullYear(),month.getMonth(),month.getDate()-(view==='week'?(month.getDay()+6)%7:0)+i));
   const begin=cells[0],end=new Date(cells[cells.length-1].getTime()+86400000);
   const expanded=occurrences(events,begin,end);
   const dayKey=(d:Date)=>new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,10);
+  const today=dayKey(new Date());
+  const onDay=(key:string)=>expanded.filter(e=>e.start.slice(0,10)<=key && e.end>key+'T00:00' && (e.title+' '+e.location).toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.start.localeCompare(b.start));
   const navigate=(direction:number)=>setMonth(view==='month'?new Date(month.getFullYear(),month.getMonth()+direction,1):new Date(month.getFullYear(),month.getMonth(),month.getDate()+direction*(view==='week'?7:1)));
-  return <section className="calendar-view"><div className="calendar-heading"><h1>{month.toLocaleDateString('de-DE',{month:'long',year:'numeric'})}</h1><div className="feature-row"><button onClick={()=>setMonth(new Date())}>Heute</button><button aria-label="Vorheriger Zeitraum" onClick={()=>navigate(-1)}>‹</button><button aria-label="Nächster Zeitraum" onClick={()=>navigate(1)}>›</button><select aria-label="Kalenderansicht" value={view} onChange={e=>setView(e.target.value as typeof view)}><option value="month">Monat</option><option value="week">Woche</option><option value="day">Tag</option></select></div></div><div className={'calendar-grid calendar-'+view}>{cells.map(day=>{const key=dayKey(day);return <div className="calendar-cell" key={key} onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('.calendar-event,.date-number'))edit(undefined,key);}}><button className="date-number" aria-label={'Termin am '+day.toLocaleDateString('de-DE')+' erstellen'} onClick={()=>edit(undefined,key)}>{day.getDate()}</button>{expanded.filter(e=>e.start.slice(0,10)<=key && e.end>key+'T00:00' && (e.title+' '+e.location).toLowerCase().includes(query.toLowerCase())).sort((a,b)=>a.start.localeCompare(b.start)).map((e,i)=><button className="calendar-event" key={e.id+':'+i} onClick={()=>edit(events.find(x=>x.id===e.id) || e)}><time>{e.allDay?'Ganztägig':e.start.slice(11,16)}</time>{e.title}{e.location&&<small> · {e.location}</small>}</button>)}</div>;})}</div></section>;
+  const open=(e:CalendarEvent)=>edit(events.find(x=>x.id===e.id) || e);
+  useEffect(()=>{if(view!=='month'&&scrollRef.current)scrollRef.current.scrollTop=7*HOUR-10;},[view]);
+  const title=view==='month'?month.toLocaleDateString('de-DE',{month:'long',year:'numeric'}):view==='day'?cells[0].toLocaleDateString('de-DE',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):cells[0].toLocaleDateString('de-DE',{day:'numeric',month:'short'})+' – '+cells[6].toLocaleDateString('de-DE',{day:'numeric',month:'short',year:'numeric'});
+  const columns={gridTemplateColumns:'56px repeat('+cells.length+',minmax(0,1fr))'};
+  const now=new Date(),nowMinutes=now.getHours()*60+now.getMinutes();
+  return <section className="calendar-view"><div className="calendar-heading"><h1>{title}</h1><div className="feature-row"><button onClick={()=>setMonth(new Date())}>Heute</button><button aria-label="Vorheriger Zeitraum" onClick={()=>navigate(-1)}>‹</button><button aria-label="Nächster Zeitraum" onClick={()=>navigate(1)}>›</button><select aria-label="Kalenderansicht" value={view} onChange={e=>{const next=e.target.value as typeof view;const now=new Date();if(next!=='month'&&now.getFullYear()===month.getFullYear()&&now.getMonth()===month.getMonth())setMonth(now);setView(next);}}><option value="month">Monat</option><option value="week">Woche</option><option value="day">Tag</option></select></div></div>
+    {view==='month'?<><div className="calendar-weekdays">{weekdays.map(d=><span key={d}>{d}</span>)}</div><div className="calendar-grid calendar-month">{cells.map(day=>{const key=dayKey(day);return <div className={'calendar-cell'+(day.getMonth()!==first.getMonth()?' outside':'')} key={key} onDoubleClick={e=>{if(!(e.target as HTMLElement).closest('.calendar-event,.date-number'))edit(undefined,key);}}><button className={'date-number'+(key===today?' today':'')} aria-label={'Termin am '+day.toLocaleDateString('de-DE')+' erstellen'} onClick={()=>edit(undefined,key)}>{day.getDate()}</button>{onDay(key).map((e,i)=><button className="calendar-event" key={e.id+':'+i} onClick={()=>open(e)}><time>{e.allDay?'Ganztägig':e.start.slice(11,16)}</time>{e.title}{e.location&&<small> · {e.location}</small>}</button>)}</div>;})}</div></>
+    :<div className={'time-view time-'+view}>
+      <div className="time-head" style={columns}><span/>{cells.map(day=>{const key=dayKey(day);return <button key={key} className={'time-day'+(key===today?' today':'')} aria-label={'Termin am '+day.toLocaleDateString('de-DE')+' erstellen'} onClick={()=>edit(undefined,key)}><small>{weekdays[(day.getDay()+6)%7]}</small><strong>{day.getDate()}</strong></button>;})}</div>
+      <div className="time-allday" style={columns}><span>Ganztägig</span>{cells.map(day=>{const key=dayKey(day);return <div key={key}>{onDay(key).filter(e=>e.allDay).map((e,i)=><button className="calendar-event" key={e.id+':'+i} onClick={()=>open(e)}>{e.title}</button>)}</div>;})}</div>
+      <div className="time-scroll" ref={scrollRef}><div className="time-grid" style={{...columns,height:24*HOUR}}>
+        <div className="time-labels">{Array.from({length:24},(_,h)=><span key={h} style={{top:h*HOUR}}>{String(h).padStart(2,'0')}:00</span>)}</div>
+        {cells.map(day=>{
+          const key=dayKey(day);
+          // Overlapping appointments share the column side by side.
+          const lanes:number[]=[];
+          const placed=onDay(key).filter(e=>!e.allDay).map(e=>{const from=e.start.slice(0,10)<key?0:minutesOf(e.start),to=e.end.slice(0,10)>key?1440:Math.max(from+15,minutesOf(e.end));let lane=lanes.findIndex(last=>last<=from);if(lane<0){lane=lanes.length;lanes.push(to);}else lanes[lane]=to;return {e,from,to,lane};});
+          return <div className="calendar-cell time-column" key={key} onDoubleClick={ev=>{if((ev.target as HTMLElement).closest('.calendar-event'))return;const hour=Math.min(23,Math.max(0,Math.floor((ev.clientY-ev.currentTarget.getBoundingClientRect().top)/HOUR)));edit(undefined,key,String(hour).padStart(2,'0')+':00');}}>
+            {placed.map(({e,from,to,lane},i)=><button className="calendar-event timed" key={e.id+':'+i} style={{top:from/60*HOUR,height:Math.max(18,(to-from)/60*HOUR-2),left:(lane/lanes.length*100)+'%',width:(100/lanes.length)+'%'}} title={e.title+(e.location?' · '+e.location:'')} onClick={()=>open(e)}><time>{e.start.slice(11,16)}</time>{e.title}{e.location&&<small>{e.location}</small>}</button>)}
+            {key===today&&<div className="now-line" style={{top:nowMinutes/60*HOUR}} aria-hidden="true"/>}
+          </div>;
+        })}
+      </div></div>
+    </div>}
+  </section>;
 }
 export function TaskDetails({task,run,busy}:{task:Task;run:Run;busy:boolean}) {
   const [value,setValue]=useState(task); const [open,setOpen]=useState(false);

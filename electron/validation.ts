@@ -27,6 +27,7 @@ export const commandSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('metadata'), ids, category: text(100).optional(), pinned: z.boolean().optional() }).strict(),
   z.object({ kind: z.literal('rules'), value: z.array(z.object({ id, name: text(100), from: text(), subject: text(), target: folderSchema, enabled: z.boolean(), markRead: z.boolean() }).strict().refine(r => !!(r.from.trim() || r.subject.trim()), 'Bitte eine Regelbedingung angeben.')).max(100) }).strict(),
   z.object({ kind: z.literal('sync-all') }).strict(),
+  z.object({ kind: z.literal('undo') }).strict(),
   z.object({ kind: z.literal('search'), query: text(200).min(1), all: z.boolean(), folder: folderSchema }).strict(),
   z.object({ kind: z.literal('calendar'), operation: z.enum(['create','rename','delete','visibility']), id: id.optional(), name: text(200).min(1).optional(), visible: z.boolean().optional() }).strict(),
   z.object({ kind: z.literal('queue'), message: outgoingSchema }).strict(),
@@ -43,6 +44,7 @@ export const commandSchema = z.discriminatedUnion('kind', [
   ,z.object({ kind: z.literal('open-link'), url: z.url().max(4096).refine(v => { try { const u = new URL(v); return u.protocol === 'https:' && !u.username && !u.password; } catch { return false; } }) }).strict()
 ]);
 export const identifierSchema = id;
+export const attachmentDataSchema = z.object({ name: text(255).min(1), data: z.instanceof(Uint8Array).refine(v => v.byteLength <= 20 * 1024 * 1024, 'Neue Anhänge dürfen zusammen maximal 20 MB groß sein.') }).strict();
 export const windowRequestSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('mail'), id, accountId: id.optional() }).strict(),
   z.object({ kind: z.literal('compose'), message: outgoingSchema, existing: z.array(z.object({ id, name: text(255), size: z.number().int().min(0) }).strict()).max(100).optional() }).strict()

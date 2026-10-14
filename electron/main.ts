@@ -7,14 +7,14 @@ import { z } from 'zod';
 import type { Attachment, Folder, Mail, Outgoing, State, WindowRequest } from '../shared/types';
 import { createDemo } from '../shared/demo';
 import { normalize, occurrences } from '../shared/features';
-import { handleCommand, flushOutbox, applyRules } from './commands';
+import { handleCommand, flushOutbox, applyRules, moveMail } from './commands';
 import { Store, secureAvailable, type Credentials } from './store';
 import { ImapProvider, MicrosoftProvider, type FileAttachment, type Provider } from './providers';
 import { initializeUpdates } from './updates';
 import { parseMailto } from './mailto';
 import { authorize } from './oauth';
 import { applyLocalAction, localOutgoing } from './local';
-import { clientIdSchema, contactSchema, eventSchema, folderSchema, identifierSchema, imapSchema, mailActionSchema, outgoingSchema, recipients, taskSchema, windowRequestSchema } from './validation';
+import { clientIdSchema, contactSchema, eventSchema, folderSchema, identifierSchema, imapSchema, mailActionSchema, outgoingSchema, recipients, taskSchema, windowRequestSchema, attachmentDataSchema } from './validation';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'postblick', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 const profileArgument = !app.isPackaged && process.argv.find(a=>a.startsWith('--user-data-dir='));
@@ -30,6 +30,9 @@ let caller: BrowserWindow | undefined;
 let store: Store;
 let provider: Provider | null = null;
 const selectedFiles = new Map<string, string>();
+// Files dropped onto a composer arrive as bytes; the renderer never hands us a path.
+const droppedFiles = new Map<string, { name: string; content: Buffer }>();
+const safeName = (name: string) => path.basename(name.replace(/[\\/]/g, '_')).replace(/[<>:"|?*\x00-\x1F]/g, '_') || 'Anhang';
 let queue = Promise.resolve();
 
 function makeProvider(credentials: Credentials, persist = async (current: Credentials) => { store.credentials = current; await store.persistCredentials(); }): Provider {
@@ -68,6 +71,8 @@ async function filesFor(message: Outgoing): Promise<FileAttachment[]> {
   let total = 0;
   const result: FileAttachment[] = [];
   for (const attachment of message.attachments) {
+    const dropped = droppedFiles.get(attachment.id);
+    if (dropped) { total += dropped.content.length; if (total > 20 * 1024 * 1024) throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein.'); result.push({ name: dropped.name, content: dropped.content }); continue; }
     const location = selectedFiles.get(attachment.id);
     if (!location) { const cached = store.queuedFiles['recovery:' + store.state.accountId]?.find(f=>f.id===attachment.id); if(!cached)throw new Error('Bitte wähle die Anhänge vor dem Senden erneut aus.'); const content=Buffer.from(cached.content,'base64');total+=content.length;if(total>20*1024*1024)throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein.');result.push({name:cached.name,content});continue; }
     const info = await stat(location);
@@ -107,7 +112,7 @@ async function connect(credentials: Credentials) {
   try { await store.save(); } catch (error) { store.state = previous.state; store.credentials = previous.credentials; store.accounts = previous.accounts; throw error; }
   // Subsequent refreshes persist against the now-committed mailbox.
   provider = makeProvider(staged.credentials);
-  selectedFiles.clear();
+  selectedFiles.clear(); droppedFiles.clear();
   return store.view();
 }
 async function outgoingFiles(message: Outgoing): Promise<FileAttachment[]> {
@@ -123,7 +128,22 @@ const activeWindow = () => caller && !caller.isDestroyed() ? caller : window;
 function broadcast(state: State, except?: Electron.WebContents) {
   for (const target of appWindows) if (!target.isDestroyed() && target.webContents !== except) target.webContents.send('state-updated', state);
 }
-function context() { return { store, window: activeWindow(), provider: () => provider, setProvider: () => { provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear(); }, sync, save, files: outgoingFiles, validate: validateOutgoing }; }
+function context() { return { store, window: activeWindow(), provider: () => provider, setProvider: () => { provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear(); droppedFiles.clear(); }, sync, save, files: outgoingFiles, validate: validateOutgoing }; }
+// Notifications must stay referenced until handled, or their click events can be lost.
+const shown = new Set<Notification>();
+function notify(title: string, body: string, open?: WindowRequest) {
+  const notification = new Notification({ title, body });
+  shown.add(notification);
+  notification.on('click', () => {
+    shown.delete(notification);
+    if (window.isDestroyed()) return;
+    if (window.isMinimized()) window.restore();
+    window.show(); window.focus();
+    if (open) openWindow(open);
+  });
+  notification.on('close', () => shown.delete(notification));
+  notification.show();
+}
 let backgroundRunning = false;
 const reminded = new Set<string>();
 async function background() {
@@ -136,14 +156,14 @@ async function background() {
           const existing = new Set(store.state.mails.filter(m => m.folder === 'inbox').map(m => m.id));
           await sync('inbox');
           const arrived = store.state.mails.filter(m => m.folder === 'inbox' && !existing.has(m.id) && !m.read);
-          if (arrived.length && store.state.preferences?.notifications && Notification.isSupported()) new Notification({ title: 'Postblick · ' + store.state.email, body: arrived.length + ' neue Nachricht(en)' }).show();
+          if (arrived.length && store.state.preferences?.notifications && Notification.isSupported()) notify('Postblick · ' + store.state.email, arrived.length === 1 ? (arrived[0].sender || arrived[0].address) + ': ' + arrived[0].subject : arrived.length + ' neue Nachrichten', arrived.length === 1 ? { kind: 'mail', id: arrived[0].id, accountId: id } : undefined);
         }
         await flushOutbox(context());
         const now = new Date(), soon = new Date(Date.now() + 86400000);
         const events = occurrences(store.state.events, now, soon);
         for (const item of [...events.map(e => ({ id: e.id + ':' + e.start, title: e.title, at: Date.parse(e.start) - (e.reminder || 0) * 60000, enabled: !!e.reminder })), ...store.state.tasks.map(t => ({ id: t.id, title: t.title, at: Date.parse(t.reminder || ''), enabled: !t.done && !!t.reminder }))]) {
           const key = id + ':' + item.id;
-          if (item.enabled && item.at <= Date.now() && item.at > Date.now() - 60000 && !reminded.has(key)) { reminded.add(key); if (store.state.preferences?.notifications && Notification.isSupported()) new Notification({ title: 'Postblick · Erinnerung', body: item.title }).show(); }
+          if (item.enabled && item.at <= Date.now() && item.at > Date.now() - 60000 && !reminded.has(key)) { reminded.add(key); if (store.state.preferences?.notifications && Notification.isSupported()) notify('Postblick · Erinnerung', item.title); }
         }
       } catch { store.state.syncError = 'Die automatische Synchronisierung ist fehlgeschlagen. Prüfe Verbindung und Anmeldung.'; }
     }
@@ -185,8 +205,10 @@ function registerHandlers() {
     const mail = findMail(action.id);
     if (action.kind === 'delete' && mail.folder !== 'trash' && mail.folder !== 'drafts') throw new Error('Bitte zuerst in den Papierkorb verschieben.');
     if (action.kind === 'move' && !['inbox','sent','drafts','archive','junk','trash'].includes(action.folder) && !store.state.folders?.some(f => f.id === action.folder)) throw new Error('Dieser Ordner ist nicht vorhanden.');
+    delete store.state.notice;
+    if (action.kind === 'move') { delete store.state.undo; const moved = await moveMail(store.state, provider, mail, action.folder); if (moved) store.state.undo = { moves: [moved] }; return save(); }
     if (provider && !mail.id.startsWith('local:')) await provider.action(mail, action);
-    if (provider && !mail.id.startsWith('local:') && action.kind === 'move') store.state.mails = store.state.mails.filter(m => m.id !== mail.id); else applyLocalAction(store.state, action);
+    applyLocalAction(store.state, action);
     return save();
   });
   register('send', async value => {
@@ -198,14 +220,14 @@ function registerHandlers() {
       store.state.mails = store.state.mails.filter(m => m.id !== message.draftId);
       store.state.notice = store.state.mode === 'imap' ? 'Der SMTP-Server hat die Nachricht angenommen. Eine Gesendet-Kopie wurde versucht; bei Verbindungsfehlern kann sie fehlen.' : 'Microsoft hat die Nachricht zum Versand angenommen.';
     } else localOutgoing(store.state, message, false);
-    for (const attachment of message.attachments) selectedFiles.delete(attachment.id);
+    for (const attachment of message.attachments) { selectedFiles.delete(attachment.id); droppedFiles.delete(attachment.id); }
     // The server has accepted the message. A local write error must not invite duplicate sending.
     try { return await save(); } catch { store.state.notice = 'Die Nachricht wurde angenommen, aber die lokale Speicherung ist fehlgeschlagen. Bitte nicht erneut senden.'; return store.view(); }
   });
   register('save-draft', async value => {
     const message = validateOutgoing(value, true);
     if (provider) { const files = await outgoingFiles(message); await provider.draft(message, files); await sync('drafts'); } else localOutgoing(store.state, message, true);
-    for (const attachment of message.attachments) selectedFiles.delete(attachment.id);
+    for (const attachment of message.attachments) { selectedFiles.delete(attachment.id); droppedFiles.delete(attachment.id); }
     return save();
   });
   register('pick-attachments', async () => {
@@ -219,6 +241,13 @@ function registerHandlers() {
       const id = randomUUID(); selectedFiles.set(id, file); results.push({ id, name: path.basename(file), size: info.size });
     }
     return results;
+  });
+  register('attach-data', async value => {
+    const payload = attachmentDataSchema.parse(value);
+    if (droppedFiles.size >= 100) throw new Error('Bitte die Nachricht zuerst senden oder speichern; es wurden zu viele Dateien abgelegt.');
+    const id = randomUUID(), name = safeName(payload.name);
+    droppedFiles.set(id, { name, content: Buffer.from(payload.data) });
+    return { id, name, size: payload.data.byteLength };
   });
   register('download-attachment', async value => {
     const payload = z.object({ mailId: identifierSchema, attachmentId: identifierSchema }).strict().parse(value);
@@ -245,7 +274,7 @@ function registerHandlers() {
     if (next) { store.state = store.accounts[next].state; store.credentials = store.accounts[next].credentials; }
     else { store.state = normalize(createDemo()); store.state.accountId = randomUUID(); store.credentials = null; }
     try { await store.save(); } catch (error) { store.state = previous.state; store.credentials = previous.credentials; store.accounts = previous.accounts; store.queuedFiles=previous.queuedFiles;throw error; }
-    provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear();
+    provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear(); droppedFiles.clear();
     return store.view();
   });
   register('demo', async () => { if (provider) throw new Error('Bitte zuerst das verbundene Konto trennen.'); const id = store.state.accountId; store.state = normalize(createDemo()); store.state.accountId = id; return save(); });

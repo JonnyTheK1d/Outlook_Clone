@@ -17,6 +17,7 @@ const bridge: Bridge = {
   saveTask: task => invoke('save-task', task), deleteTask: id => invoke('delete-task', id),
   theme: theme => invoke('theme', theme), manage: command => invoke('manage', command),
   openWindow: request => invoke('open-window', request), windowPayload: () => invoke('window-payload'),
+  attachData: (name, data) => invoke('attach-data', { name, data }),
   onState: callback => { const listener = (_event: unknown, state: any) => callback(state); ipcRenderer.on('state-updated', listener); return () => { ipcRenderer.removeListener('state-updated', listener); }; }
 };
 contextBridge.exposeInMainWorld('postblick', Object.freeze(bridge));
