@@ -14,6 +14,9 @@
     let current = chapters[0];
     for (const chapter of chapters) if (chapter.getBoundingClientRect().top <= line) current = chapter;
     tabs.forEach(tab => tab.setAttribute('aria-current', String(tab.hash === '#' + current.id)));
+    // On narrow screens the rail is a horizontal strip: keep the current tab centred in it.
+    const rail = tabs[0]?.parentElement, active = tabs.find(tab => tab.hash === '#' + current.id);
+    if (rail && active && rail.scrollWidth > rail.clientWidth) rail.scrollLeft = active.offsetLeft - (rail.clientWidth - active.offsetWidth) / 2;
   };
   sizeTabs(); markCurrent();
   addEventListener('resize', () => { sizeTabs(); markCurrent(); });
