@@ -1,8 +1,8 @@
-version: 0.2.1
+version: 0.3.0
 files:
-  - url: Postblick-0.2.1-Windows-x64-Setup.exe
-    sha512: i1Mk5rwFHh/BsSZfpLD8E2KO53yvkX/8rn6yz++nP90fY3baS4Noz7QV9yaBLMPrfvLUpRetnbDTN8oGn3rbfA==
-    size: 118633194
-path: Postblick-0.2.1-Windows-x64-Setup.exe
-sha512: i1Mk5rwFHh/BsSZfpLD8E2KO53yvkX/8rn6yz++nP90fY3baS4Noz7QV9yaBLMPrfvLUpRetnbDTN8oGn3rbfA==
-releaseDate: '2026-10-13T15:53:52.080Z'
+  - url: Postblick-0.3.0-Windows-x64-Setup.exe
+    sha512: JrrZrC8Z3u2nnwn6iqV1wxvcTEO5Bbu8G3wRe45DIs67hKzGGyWk53JkxHKK6Mr5NxQO5wM1ujAAmKYBXtSRlg==
+    size: 118858829
+path: Postblick-0.3.0-Windows-x64-Setup.exe
+sha512: JrrZrC8Z3u2nnwn6iqV1wxvcTEO5Bbu8G3wRe45DIs67hKzGGyWk53JkxHKK6Mr5NxQO5wM1ujAAmKYBXtSRlg==
+releaseDate: '2026-10-14T07:52:15.478Z'
