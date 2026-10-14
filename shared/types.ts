@@ -25,14 +25,15 @@ export interface State {
   calendars?: { id: string; name: string; visible: boolean; isDefault?: boolean; canEdit?: boolean }[];
 }
 export interface Outgoing { to: string; cc: string; subject: string; body: string; attachments: Attachment[]; draftId?: string; bcc?: string; html?: string; replyId?: string; replyAll?: boolean; forwardId?: string; importance?: 'low' | 'normal' | 'high'; readReceipt?: boolean; deliveryReceipt?: boolean; scheduledAt?: string; retainedAttachments?: string[]; inReplyTo?: string; references?: string }
-export interface Preferences { signature: string; notifications: boolean; syncMinutes: number; threads: boolean; readingPane: 'right' | 'bottom'; density: 'comfortable' | 'compact'; favorites: string[]; categories: string[]; templates: { name: string; subject: string; body: string }[] }
+export type SortKey = 'date' | 'from' | 'subject' | 'importance' | 'flagged';
+export interface Preferences { signature: string; notifications: boolean; syncMinutes: number; threads: boolean; readingPane: 'right' | 'bottom' | 'off'; density: 'comfortable' | 'compact'; favorites: string[]; categories: string[]; templates: { name: string; subject: string; body: string }[]; sortBy: SortKey; sortDescending: boolean; groupByDate: boolean; composeInWindow: boolean }
 export interface Rule { id: string; name: string; from: string; subject: string; target: Folder; enabled: boolean; markRead: boolean }
 export interface QueuedMessage { id: string; message: Outgoing; createdAt: string; status: 'pending' | 'uncertain' | 'failed'; error?: string }
 export type Command =
  | { kind: 'account'; id: string }
  | { kind: 'preferences'; value: Preferences }
  | { kind: 'folder'; operation: 'create' | 'rename' | 'delete'; id?: string; name?: string; parent?: string }
- | { kind: 'batch'; ids: string[]; action: 'read' | 'unread' | 'flag' | 'unflag' | 'delete' | 'move'; folder?: string }
+ | { kind: 'batch'; ids: string[]; action: 'read' | 'unread' | 'flag' | 'unflag' | 'delete' | 'move' | 'purge'; folder?: string }
  | { kind: 'metadata'; ids: string[]; category?: string; pinned?: boolean }
  | { kind: 'rules'; value: Rule[] }
  | { kind: 'sync-all' }
@@ -53,6 +54,7 @@ export type Command =
 export interface ImapSettings { email: string; password: string; imapHost: string; imapPort: number; smtpHost: string; smtpPort: number }
 export interface Capabilities { desktop: boolean; secureStorage: boolean; platform: string }
 export type MailAction = { id: string; kind: 'read'; value: boolean } | { id: string; kind: 'flag'; value: boolean } | { id: string; kind: 'move'; folder: Folder } | { id: string; kind: 'delete' };
+export type WindowRequest = { kind: 'mail'; id: string; accountId?: string } | { kind: 'compose'; message: Outgoing; existing?: Attachment[] };
 export interface Bridge {
   state(): Promise<State>; capabilities(): Promise<Capabilities>;
   sync(folder: Folder): Promise<State>; mailAction(action: MailAction): Promise<State>;
@@ -66,4 +68,5 @@ export interface Bridge {
   theme(theme: 'light' | 'dark'): Promise<State>;
   manage(command: Command): Promise<State>;
   onState?(callback: (state: State) => void): () => void;
+  openWindow?(request: WindowRequest): Promise<void>; windowPayload?(): Promise<WindowRequest | null>;
 }

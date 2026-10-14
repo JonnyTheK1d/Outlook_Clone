@@ -13,9 +13,9 @@ const { Store } = require('../dist-electron/electron/store');
 const { MicrosoftProvider } = require('../dist-electron/electron/providers');
 const { handleCommand, flushOutbox, calendarText, csvRows } = require('../dist-electron/electron/commands');
 Module._load=original;
-const { normalize, localCommand, matches, occurrences } = require('../dist-electron/shared/features');
+const { normalize, localCommand, matches, occurrences, sortMails, dateGroup, groupLabel, conversationKey } = require('../dist-electron/shared/features');
 const { createDemo } = require('../dist-electron/shared/demo');
-const { commandSchema } = require('../dist-electron/electron/validation');
+const { commandSchema, windowRequestSchema } = require('../dist-electron/electron/validation');
 const { parseMailto } = require('../dist-electron/electron/mailto');
 const originalFetch = global.fetch; after(()=>{global.fetch=originalFetch;});
 const credentials = { type:'microsoft',clientId:'12345678-1234-1234-1234-123456789abc',accessToken:'private-token',refreshToken:'private-refresh',expiresAt:Date.now()+3600000 };
@@ -128,4 +128,55 @@ test('additional calendars have independent visibility and protected default cal
   localCommand(state,{kind:'calendar',operation:'visibility',id:'work',visible:false},()=> '');
   assert.equal(state.calendars.find(c=>c.id==='work').visible,false);
   assert.throws(()=>localCommand(state,{kind:'calendar',operation:'delete',id:'local'},()=> ''),/zusätzlichen/);
+});
+
+test('message lists sort like Outlook with pinned items first and stable date fallback',()=>{
+  const mail=(id,patch)=>({id,folder:'inbox',sender:'',address:'',to:'',subject:'',body:'',read:true,flagged:false,attachments:[],date:'2026-10-10T10:00:00Z',...patch});
+  const list=[mail('a',{sender:'Zoe',subject:'AW: Beta',date:'2026-10-11T10:00:00Z'}),mail('b',{sender:'Ärger',subject:'Alpha',importance:'high'}),mail('c',{sender:'Max',subject:'Re: gamma',pinned:true,date:'2026-01-01T10:00:00Z'})];
+  assert.deepEqual(sortMails(list).map(m=>m.id),['c','a','b']);
+  assert.deepEqual(sortMails(list,'from',false).map(m=>m.id),['c','b','a']);
+  assert.deepEqual(sortMails(list,'subject',false).map(m=>m.id),['c','b','a']);
+  assert.deepEqual(sortMails(list,'importance',true).map(m=>m.id),['c','b','a']);
+  assert.equal(conversationKey(mail('x',{subject:'AW: WG: Re: Projekt'})),conversationKey(mail('y',{subject:'Projekt'})));
+  assert.notEqual(conversationKey(mail('x',{subject:'Projekt',accountId:'1'})),conversationKey(mail('y',{subject:'Projekt',accountId:'2'})));
+});
+test('date groups follow Outlook buckets',()=>{
+  const now=new Date(2026,9,14,12);
+  const at=(y,m,d)=>new Date(y,m,d,9).toISOString();
+  assert.equal(dateGroup(at(2026,9,14),now),'Heute');
+  assert.equal(dateGroup(at(2026,9,13),now),'Gestern');
+  assert.equal(dateGroup(at(2026,9,12),now),'Diese Woche');
+  assert.equal(dateGroup(at(2026,9,7),now),'Letzte Woche');
+  assert.equal(dateGroup(at(2026,9,2),now),'Diesen Monat');
+  assert.equal(dateGroup(at(2026,8,20),now),'Letzten Monat');
+  assert.equal(dateGroup(at(2025,9,14),now),'Älter');
+  assert.equal(dateGroup(at(2026,9,20),now),'Zukünftig');
+  assert.equal(groupLabel({pinned:true,date:at(2026,9,14)},'date',now),'Angeheftet');
+  assert.equal(groupLabel({flagged:true,date:at(2026,9,14)},'flagged',now),'Zur Nachverfolgung');
+});
+test('purging only removes messages that are already in the trash',async()=>{
+  const state=normalize(createDemo());
+  assert.ok(commandSchema.safeParse({kind:'batch',ids:['demo-1'],action:'purge'}).success);
+  assert.throws(()=>localCommand(state,{kind:'batch',ids:['demo-1'],action:'purge'},()=>''),/Papierkorb/);
+  localCommand(state,{kind:'batch',ids:['demo-1','demo-2'],action:'delete'},()=>'');
+  localCommand(state,{kind:'batch',ids:['demo-1','demo-2'],action:'purge'},()=>'');
+  assert.equal(state.mails.some(m=>m.id==='demo-1'||m.id==='demo-2'),false);
+  const deleted=[];const store={state:normalize(createDemo()),queuedFiles:{},save:async()=>{},view:()=>store.state};
+  store.state.mails.find(m=>m.id==='demo-3').folder='trash';
+  const ctx={store,provider:()=>({action:async(mail,action)=>{deleted.push([mail.id,action.kind]);}}),save:async()=>store.state};
+  await assert.rejects(handleCommand(ctx,{kind:'batch',ids:['demo-1'],action:'purge'}),/Papierkorb/);
+  await handleCommand(ctx,{kind:'batch',ids:['demo-3'],action:'purge'});
+  assert.deepEqual(deleted,[['demo-3','delete']]);assert.equal(store.state.mails.some(m=>m.id==='demo-3'),false);
+});
+test('view preferences and pop-out window requests are validated',()=>{
+  const prefs=normalize(createDemo()).preferences;
+  assert.equal(prefs.sortBy,'date');assert.equal(prefs.groupByDate,true);assert.equal(prefs.composeInWindow,false);
+  assert.ok(commandSchema.safeParse({kind:'preferences',value:{...prefs,readingPane:'off',sortBy:'subject',sortDescending:false}}).success);
+  assert.equal(commandSchema.safeParse({kind:'preferences',value:{...prefs,sortBy:'size'}}).success,false);
+  const {sortBy,sortDescending,groupByDate,composeInWindow,...legacy}=prefs;
+  assert.ok(commandSchema.safeParse({kind:'preferences',value:legacy}).success);
+  assert.ok(windowRequestSchema.safeParse({kind:'mail',id:'inbox:1:2',accountId:'a'}).success);
+  assert.ok(windowRequestSchema.safeParse({kind:'compose',message:{to:'a@example.com',cc:'',subject:'Hi',body:'',attachments:[]},existing:[{id:'x',name:'big.bin',size:60*1024*1024}]}).success);
+  assert.equal(windowRequestSchema.safeParse({kind:'mail',id:'x',url:'https://evil.invalid'}).success,false);
+  assert.equal(windowRequestSchema.safeParse({kind:'settings'}).success,false);
 });

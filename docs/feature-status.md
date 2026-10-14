@@ -9,7 +9,7 @@
 | Empfang | Hintergrundabruf, Kontointervall, Windows-Benachrichtigungen und Taskleistenindikator | IMAP IDLE/Graph Push; geschlossene App |
 | Ordner | Erstellen, Umbenennen, Löschen leerer zusätzlicher Ordner; Unterordner; Favoriten | Suchordner; komplexe IMAP-Hierarchieanzeige |
 | Suche | Seitenabruf, alle geladenen Ordner, Filtergrammatik, Graph-/IMAP-Serversuche | Graph maximal 1000 Suchtreffer je Ordner; großer lokaler Suchindex |
-| Organisation | Kategorien, Pinning, Mehrfachaktionen, Drag-and-drop in eigene Ordner, Organisationsleiste per Rechtsklick | Relevant/Sonstige; vollständige Unterhaltungshistorie; Undo |
+| Organisation | Kategorien, Pinning, Mehrfachaktionen mit Strg-/Umschalt-Auswahl, Drag-and-drop auf alle Ordner, Kontextmenüs für Nachrichten und Ordner, „Alle als gelesen markieren“, „Ordner leeren“, Sortierung und Datumsgruppen, Unterhaltungsverlauf im Lesebereich | Relevant/Sonstige; Undo; Kennzeichnung mit Fälligkeit |
 | Regeln | Lokale Absender-/Betreffbedingungen, Verschieben und Gelesen-Markierung | Serverregelverwaltung, Auto-Weiterleitung, Quick Steps |
 | Abwesenheit | Microsoft-Antwort aktivieren/deaktivieren | Andere Anbieter; Zeitplan |
 | HTML | DOMPurify-Bereinigung, Formatierung, Listen, HTTPS-Links mit Zielbestätigung, vorhandene Datenbilder | Vollständiger CSS-/Schrift-/Tabelleneditor, CID-Bilder und Bildauswahl |
@@ -24,9 +24,20 @@
 | Aufgaben | Listenbezeichnung, Notizen, Unteraufgaben, Erinnerungen, Wiederholung, Microsoft To Do | Listenübergreifendes Verschieben, delegierte Aufgaben, alle Outlook-Felder |
 | Exchange | Eigene Graph-Mailbox | Freigegebene Postfächer, Stellvertretung, Senden als, öffentliche Ordner, Gruppen |
 | Daten | Rekonstruierter EML-Export, lokaler EML-Import, CSV-Kontakte, ICS-Kalender, Drucken | PST/MSG, MIME-Originalarchiv, EML-Importanhänge, komplexer ICS-Serienimport |
-| Windows | Mailto-Parser, Standard-App-Registrierung, Drucken, Lesebereich/Dichte | Separate Fenster, Spalten, vollständige Kontextmenüs/Kürzel, Add-ins |
+| Windows | Mailto-Parser, Standard-App-Registrierung, Drucken, Lesebereich rechts/unten/aus, Dichte, eigene Lese- und Verfassenfenster (Doppelklick/Eingabe), Outlook-Tastenkürzel, Menüband „Ansicht“, Bearbeiten-/Rechtschreibmenü in Textfeldern | Spaltenansicht, Add-ins, Fensterpositionen merken |
 | Updates | Versionsprüfung/Download-Link; Signaturprüfung für spätere automatische Updates vorbereitet | Automatische Installation bleibt ohne Zertifikat und Signaturtests deaktiviert |
 | Sicherheit | Isolation, Mehrkontenverschlüsselung, TLS, PKCE, IPC-Validierung, HTML-Bereinigung | S/MIME, Microsoft-Nachrichtenverschlüsselung, Phishing-/Malware-Prüfung, Unternehmensrichtlinien, Audit |
+
+## Seit 0.2.1 (Entwicklungsstand, noch nicht als Installer veröffentlicht)
+
+- **Eigene Fenster wie in Outlook:** Doppelklick oder Eingabetaste öffnet eine Nachricht in einem eigenen Lesefenster mit Menüband (Antworten, Löschen, Archivieren, Verschieben, Kategorisieren, Drucken, vorheriges/nächstes Element). Antworten und Weiterleiten aus dem Lesefenster öffnen ein eigenes Verfassenfenster; Entwürfe öffnen sich per Doppelklick zum Bearbeiten. Der Editor lässt sich mit „In neuem Fenster“ ausdocken, optional öffnen alle neuen Nachrichten in eigenen Fenstern. Alle Fenster verwenden dieselbe isolierte, validierte Bridge und bleiben synchron. Schließen des Hauptfensters schließt die Nebenfenster; ungesendeter Text bleibt über die lokale Autosicherung erhalten.
+- **Kontextmenüs:** Rechtsklick auf Nachrichten (Öffnen, Antworten, Gelesen/Ungelesen, Kennzeichnen, Kategorisieren, Anheften, Verschieben, Archivieren, Junk, Löschen, Drucken, EML) und auf Ordner (Alle als gelesen markieren, Synchronisieren, Favorit, Unterordner, Umbenennen, Löschen, Ordner leeren). Textfelder erhalten ein Bearbeiten-Menü mit Rechtschreibvorschlägen.
+- **Auswahl und Tastatur:** Strg-/Umschalt-Klick, Strg+A, Pfeiltasten (mit Umschalt erweiterbar), Strg+R/Strg+Umschalt+R/Strg+F, Strg+Q/Strg+U, Einfg, Entf, Rücktaste (Archivieren), Strg+Umschalt+V, Strg+1…4, Strg+Umschalt+M/A/C, F9, Strg+P. Das Electron-Standardmenü lädt die App bei Strg+R nicht mehr neu.
+- **Ansicht:** Menüband „Ansicht“ mit Lesebereich rechts/unten/aus, Unterhaltungen, Gruppen, Kompaktansicht, Ordnerbereich, Mein Tag und Design. Sortierung nach Datum, Von, Betreff, Wichtigkeit oder Kennzeichnung, Gruppen „Heute“, „Gestern“, „Diese Woche“ usw.
+- **Lesebereich:** Cc/Bcc-Anzeige, Kategorien, hohe Wichtigkeit, Mehrfachauswahl-Übersicht, weitere Nachrichten derselben Unterhaltung, Drucken und „In neuem Fenster öffnen“.
+- **Kalender:** Doppelklick in einen Tag erstellt einen Termin.
+
+„Ordner leeren“ und „Alle als gelesen markieren“ wirken auf die lokal geladenen Nachrichten eines Ordners; für vollständige Ordner vorher „Ganzes Konto laden“ verwenden. Endgültiges Löschen ist nur im Papierkorb möglich und wird vorher bestätigt.
 
 ## Externe Voraussetzungen und zusätzliche Implementierung
 

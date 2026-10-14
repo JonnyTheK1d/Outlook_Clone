@@ -104,6 +104,11 @@ export async function handleCommand(ctx: Context, value: unknown): Promise<State
     if (command.action === 'move') { if (!command.folder) throw new Error('Bitte einen Zielordner wählen.'); ensureFolder(store.state, command.folder); }
     for (const id of command.ids) {
       const mail = store.state.mails.find(m => m.id === id); if (!mail) throw new Error('Diese Nachricht ist nicht mehr vorhanden.');
+      if (command.action === 'purge') {
+        if (mail.folder !== 'trash') throw new Error('Bitte zuerst in den Papierkorb verschieben.');
+        if (provider && !id.startsWith('local:')) await provider.action(mail, { id, kind: 'delete' });
+        applyLocalAction(store.state, { id, kind: 'delete' }); await store.save(); continue;
+      }
       const action = command.action === 'move' || command.action === 'delete' ? { id, kind: 'move' as const, folder: command.action === 'delete' ? 'trash' : command.folder! } : { id, kind: (command.action === 'flag' || command.action === 'unflag' ? 'flag' : 'read') as 'flag' | 'read', value: command.action === 'read' || command.action === 'flag' };
       if (provider && !id.startsWith('local:')) { await provider.action(mail, action); if (action.kind === 'move') store.state.mails = store.state.mails.filter(m => m.id !== id); else applyLocalAction(store.state, action); }
       else applyLocalAction(store.state, action);

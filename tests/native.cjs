@@ -58,3 +58,40 @@ test('native desktop: isolated bridge, validated IPC, local persistence and sand
     assert.ok((await restarted.evaluate(() => window.postblick.state())).tasks.some(t => t.title === 'Native test task'));
   } finally { if (app) await app.close(); await rm(profile, { recursive: true, force: true }); }
 });
+test('native desktop: pop-out read and compose windows share the validated bridge', { timeout: 120000 }, async () => {
+  const profile = await mkdtemp(path.join(tmpdir(), 'postblick-windows-'));
+  const args = ['.', '--disable-gpu', '--user-data-dir=' + profile];
+  if (process.env.POSTBLICK_TEST_DISABLE_SANDBOX === '1') args.push('--no-sandbox');
+  let app;
+  try {
+    app = await _electron.launch({ args, env: { ...process.env, XDG_CONFIG_HOME: profile, XDG_CACHE_HOME: '/workspace/.cache' } });
+    const page = await app.firstWindow();
+    await page.getByRole('heading', { name: 'Posteingang', exact: true }).waitFor();
+    // Ctrl+R must reply, not reload the renderer through the default Electron menu.
+    await page.locator('.message-item').first().click();
+    await page.keyboard.press('Control+r');
+    await page.getByRole('dialog', { name: 'Neue Nachricht' }).waitFor();
+    page.once('dialog', dialog => dialog.accept()); await page.keyboard.press('Escape');
+    const [reader] = await Promise.all([app.waitForEvent('window'), page.locator('.message-item').filter({ hasText: 'Design-Review' }).dblclick()]);
+    await reader.getByRole('heading', { name: 'Design-Review · Donnerstag' }).waitFor();
+    const readerPreferences = await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().map(w => w.webContents.getLastWebPreferences()).map(p => [p.contextIsolation, p.nodeIntegration, p.sandbox]));
+    assert.deepEqual(readerPreferences, [[true, false, true], [true, false, true]]);
+    assert.equal(await reader.evaluate(() => typeof require), 'undefined');
+    // A change in the pop-out reaches the main window without a reload.
+    await reader.getByRole('button', { name: 'Flagge entfernen', exact: true }).first().click();
+    await page.locator('.message-item').filter({ hasText: 'Design-Review' }).locator('.message-indicators svg').waitFor({ state: 'detached' });
+    assert.equal(await reader.evaluate(async () => { try { await window.postblick.openWindow({ kind: 'mail', id: 'x', url: 'https://example.invalid' }); return false; } catch { return true; } }), true);
+    const [composer] = await Promise.all([app.waitForEvent('window'), reader.getByRole('button', { name: 'Weiterleiten', exact: true }).first().click()]);
+    await composer.getByRole('textbox', { name: 'Betreff', exact: true }).waitFor();
+    assert.equal(await composer.getByRole('textbox', { name: 'Betreff', exact: true }).inputValue(), 'WG: Design-Review · Donnerstag');
+    assert.equal(await page.evaluate(() => window.postblick.windowPayload()), null);
+    await composer.getByRole('combobox', { name: 'Empfänger', exact: true }).fill('team@example.com');
+    await composer.getByRole('button', { name: 'Lokal senden', exact: true }).click();
+    await composer.waitForEvent('close').catch(() => {});
+    const state = await page.evaluate(() => window.postblick.state());
+    assert.ok(state.mails.some(m => m.folder === 'sent' && m.subject === 'WG: Design-Review · Donnerstag'));
+    // Escape closes the read window, as in Outlook.
+    await Promise.all([reader.waitForEvent('close'), reader.keyboard.press('Escape').catch(() => {})]);
+    assert.equal(await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows().length), 1);
+  } finally { if (app) await app.close(); await rm(profile, { recursive: true, force: true }); }
+});

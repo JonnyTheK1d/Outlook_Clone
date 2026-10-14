@@ -1,10 +1,10 @@
-import { app, BrowserWindow, dialog, ipcMain, net, protocol, session, Notification, nativeImage } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, net, protocol, session, Notification, nativeImage } from 'electron';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { Attachment, Folder, Mail, Outgoing, State } from '../shared/types';
+import type { Attachment, Folder, Mail, Outgoing, State, WindowRequest } from '../shared/types';
 import { createDemo } from '../shared/demo';
 import { normalize, occurrences } from '../shared/features';
 import { handleCommand, flushOutbox, applyRules } from './commands';
@@ -14,7 +14,7 @@ import { initializeUpdates } from './updates';
 import { parseMailto } from './mailto';
 import { authorize } from './oauth';
 import { applyLocalAction, localOutgoing } from './local';
-import { clientIdSchema, contactSchema, eventSchema, folderSchema, identifierSchema, imapSchema, mailActionSchema, outgoingSchema, recipients, taskSchema } from './validation';
+import { clientIdSchema, contactSchema, eventSchema, folderSchema, identifierSchema, imapSchema, mailActionSchema, outgoingSchema, recipients, taskSchema, windowRequestSchema } from './validation';
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'postblick', privileges: { standard: true, secure: true, supportFetchAPI: true } }]);
 const profileArgument = !app.isPackaged && process.argv.find(a=>a.startsWith('--user-data-dir='));
@@ -22,6 +22,11 @@ if(profileArgument)app.setPath('userData',path.resolve(profileArgument.slice('--
 const development = !app.isPackaged && process.argv.includes('--dev');
 const origin = development ? 'http://127.0.0.1:5173' : 'postblick://bundle';
 let window: BrowserWindow;
+// Every window that loads the bundle (main window and pop-outs) may use the bridge.
+const appWindows = new Set<BrowserWindow>();
+const popouts = new Map<string, BrowserWindow>();
+const payloads = new Map<number, WindowRequest>();
+let caller: BrowserWindow | undefined;
 let store: Store;
 let provider: Provider | null = null;
 const selectedFiles = new Map<string, string>();
@@ -114,7 +119,11 @@ async function outgoingFiles(message: Outgoing): Promise<FileAttachment[]> {
   if (files.reduce((sum,f) => sum + f.content.length,0) > 20 * 1024 * 1024) throw new Error('Neue Anhänge dürfen zusammen maximal 20 MB groß sein.');
   return files;
 }
-function context() { return { store, window, provider: () => provider, setProvider: () => { provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear(); }, sync, save, files: outgoingFiles, validate: validateOutgoing }; }
+const activeWindow = () => caller && !caller.isDestroyed() ? caller : window;
+function broadcast(state: State, except?: Electron.WebContents) {
+  for (const target of appWindows) if (!target.isDestroyed() && target.webContents !== except) target.webContents.send('state-updated', state);
+}
+function context() { return { store, window: activeWindow(), provider: () => provider, setProvider: () => { provider = store.credentials ? makeProvider(store.credentials) : null; selectedFiles.clear(); }, sync, save, files: outgoingFiles, validate: validateOutgoing }; }
 let backgroundRunning = false;
 const reminded = new Set<string>();
 async function background() {
@@ -138,13 +147,22 @@ async function background() {
         }
       } catch { store.state.syncError = 'Die automatische Synchronisierung ist fehlgeschlagen. Prüfe Verbindung und Anmeldung.'; }
     }
-  } finally { store.activate(active); provider = store.credentials ? makeProvider(store.credentials) : null; await store.save(); updateBadge(); window.webContents.send('state-updated', store.view()); }
+  } finally { store.activate(active); provider = store.credentials ? makeProvider(store.credentials) : null; await store.save(); updateBadge(); broadcast(store.view()); }
 }
-function register(name: string, handler: (value: any) => Promise<unknown>) {
+function register(name: string, handler: (value: any, sender: BrowserWindow) => Promise<unknown>, immediate = false) {
   ipcMain.handle(name, async (event, value) => {
-    if (event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame || !event.senderFrame.url.startsWith(origin + '/')) throw new Error('Unzulässiger Zugriff.');
+    const sender = BrowserWindow.fromWebContents(event.sender);
+    if (!sender || !appWindows.has(sender) || event.senderFrame !== sender.webContents.mainFrame || !event.senderFrame.url.startsWith(origin + '/')) throw new Error('Unzulässiger Zugriff.');
+    // Opening windows touches no mailbox data and must not wait behind a long synchronisation.
+    if (immediate) { try { return { ok: true, value: await handler(value, sender) }; } catch (error) { return { ok: false, error: error instanceof z.ZodError ? error.issues.map(issue => issue.message).join(' · ') : 'Das Fenster konnte nicht geöffnet werden.' }; } }
     const operation = queue.then(async () => {
-      try { return { ok: true, value: await handler(value) }; }
+      try {
+        caller = sender;
+        const result = await handler(value, sender);
+        // Keep other open windows (read and compose pop-outs) in sync with the shared mailbox.
+        if (result && typeof result === 'object' && Array.isArray((result as State).mails)) broadcast(result as State, event.sender);
+        return { ok: true, value: result };
+      }
       catch (error) {
         if (error instanceof z.ZodError) return { ok: false, error: error.issues.map(issue => issue.message).join(' · ') };
         // Our own errors are safe; never surface protocol responses or filesystem paths.
@@ -152,6 +170,7 @@ function register(name: string, handler: (value: any) => Promise<unknown>) {
         const safe = /^(Bitte |Die |Der |Das |Diese|Dieser|Echte |Microsoft|Ungültig|Neue |Ein Anhang|Anmeldung)/.test(message);
         return { ok: false, error: safe ? message : 'Die Verbindung oder Speicherung ist fehlgeschlagen. Prüfe Serverdaten, Zugang und Netzwerk.' };
       }
+      finally { caller = undefined; }
     });
     queue = operation.then(() => undefined, () => undefined);
     return operation;
@@ -190,7 +209,7 @@ function registerHandlers() {
     return save();
   });
   register('pick-attachments', async () => {
-    const choice = await dialog.showOpenDialog(window, { title: 'Anhänge auswählen (zusammen maximal 20 MB)', properties: ['openFile', 'multiSelections'] });
+    const choice = await dialog.showOpenDialog(activeWindow(), { title: 'Anhänge auswählen (zusammen maximal 20 MB)', properties: ['openFile', 'multiSelections'] });
     if (choice.canceled) return [];
     const results: Attachment[] = [];
     let total = 0;
@@ -208,7 +227,7 @@ function registerHandlers() {
     if (!attachment || !provider) throw new Error('Dieser Anhang ist nicht verfügbar.');
     if (attachment.size > 20 * 1024 * 1024) throw new Error('Dieser Anhang überschreitet das Limit von 20 MB.');
     const name = path.basename(attachment.name.replace(/[\\/]/g, '_')).replace(/[<>:"|?*\x00-\x1F]/g, '_');
-    const choice = await dialog.showSaveDialog(window, { defaultPath: name, title: 'Anhang speichern' });
+    const choice = await dialog.showSaveDialog(activeWindow(), { defaultPath: name, title: 'Anhang speichern' });
     if (choice.canceled || !choice.filePath) return false;
     const content = await provider.attachment(mail, attachment.id);
     if (content.length > 20 * 1024 * 1024) throw new Error('Dieser Anhang überschreitet das Größenlimit.');
@@ -238,6 +257,48 @@ function registerHandlers() {
   register('delete-task', async value => { const id = identifierSchema.parse(value); if (provider instanceof MicrosoftProvider) await provider.deleteTask(id); store.state.tasks = store.state.tasks.filter(t => t.id !== id); return save(); });
   register('manage', value => handleCommand(context(), value));
   register('theme', async value => { store.state.theme = z.enum(['light', 'dark']).parse(value); return save(); });
+  register('open-window', async value => { openWindow(windowRequestSchema.parse(value) as WindowRequest); }, true);
+  register('window-payload', async (_value, sender) => payloads.get(sender.webContents.id) ?? null, true);
+}
+const preferences = () => ({ preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: true, devTools: !app.isPackaged });
+function secure(target: BrowserWindow) {
+  appWindows.add(target);
+  const id = target.webContents.id;
+  target.on('closed', () => { appWindows.delete(target); payloads.delete(id); });
+  target.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
+  target.webContents.on('will-navigate', (event, url) => { if (!url.startsWith(origin + '/')) event.preventDefault(); });
+  target.webContents.on('will-attach-webview', event => event.preventDefault());
+  // Electron has no default context menu: offer editing and spelling suggestions in text fields.
+  target.webContents.on('context-menu', (_event, params) => {
+    const items: Electron.MenuItemConstructorOptions[] = [];
+    if (params.isEditable && params.misspelledWord) {
+      for (const suggestion of params.dictionarySuggestions.slice(0, 5)) items.push({ label: suggestion, click: () => target.webContents.replaceMisspelling(suggestion) });
+      if (!params.dictionarySuggestions.length) items.push({ label: 'Keine Vorschläge', enabled: false });
+      items.push({ label: 'Zum Wörterbuch hinzufügen', click: () => target.webContents.session.addWordToSpellCheckerDictionary(params.misspelledWord) }, { type: 'separator' });
+    }
+    if (params.isEditable) items.push({ label: 'Rückgängig', role: 'undo', enabled: params.editFlags.canUndo }, { label: 'Wiederholen', role: 'redo', enabled: params.editFlags.canRedo }, { type: 'separator' }, { label: 'Ausschneiden', role: 'cut', enabled: params.editFlags.canCut });
+    if (params.isEditable || params.selectionText.trim()) items.push({ label: 'Kopieren', role: 'copy', enabled: params.editFlags.canCopy });
+    if (params.isEditable) items.push({ label: 'Einfügen', role: 'paste', enabled: params.editFlags.canPaste }, { type: 'separator' }, { label: 'Alles auswählen', role: 'selectAll' });
+    if (items.length) Menu.buildFromTemplate(items).popup({ window: target });
+  });
+}
+const bundle = (hash = '') => (development ? origin + '/' : origin + '/index.html') + (hash ? '#' + hash : '');
+function openWindow(request: WindowRequest) {
+  const key = request.kind === 'mail' ? 'mail:' + (request.accountId || store.state.accountId) + ':' + request.id : 'compose:' + randomUUID();
+  const existing = popouts.get(key);
+  if (existing && !existing.isDestroyed()) { if (existing.isMinimized()) existing.restore(); existing.focus(); return; }
+  const popout = new BrowserWindow({ width: 1000, height: 820, minWidth: 560, minHeight: 480, title: 'Postblick', backgroundColor: store.state.theme === 'dark' ? '#151b24' : '#f5f7fa', show: false, autoHideMenuBar: true, webPreferences: preferences() });
+  secure(popout); popouts.set(key, popout);
+  popout.on('closed', () => popouts.delete(key));
+  if (request.kind === 'compose') payloads.set(popout.webContents.id, request);
+  // A compose window with unsent changes asks before it closes, as Outlook does.
+  popout.webContents.on('will-prevent-unload', event => {
+    const choice = dialog.showMessageBoxSync(popout, { type: 'question', buttons: ['Schließen', 'Weiter bearbeiten'], defaultId: 1, cancelId: 1, title: 'Nachricht schließen?', message: 'Die Nachricht wurde noch nicht gesendet.', detail: 'Der automatisch gespeicherte Entwurf kann im Hauptfenster wiederhergestellt werden.' });
+    if (choice === 0) event.preventDefault();
+  });
+  popout.once('ready-to-show', () => popout.show());
+  const hash = request.kind === 'mail' ? 'mail=' + encodeURIComponent(request.id) + (request.accountId ? '&account=' + encodeURIComponent(request.accountId) : '') : 'compose';
+  void popout.loadURL(bundle(hash));
 }
 async function start() {
   if(process.platform==='win32')app.setAppUserModelId('de.postblick.desktop');
@@ -262,21 +323,21 @@ async function start() {
     ...details.responseHeaders,
     'Content-Security-Policy': [`default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'${development ? ' ws://127.0.0.1:5173' : ''}; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'`]
   } }));
-  window = new BrowserWindow({ width: 1440, height: 940, minWidth: 980, minHeight: 680, title: 'Postblick', backgroundColor: '#f5f7fa', show: false, autoHideMenuBar: true,
-    webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false, sandbox: true, webSecurity: true, spellcheck: true, devTools: !app.isPackaged }
-  });
-  window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
-  window.webContents.on('will-navigate', (event, url) => { if (!url.startsWith(origin + '/')) event.preventDefault(); });
-  window.webContents.on('will-attach-webview', event => event.preventDefault());
+  // The default menu binds Ctrl+R / Ctrl+Shift+R to reload; Outlook uses them for reply.
+  Menu.setApplicationMenu(Menu.buildFromTemplate([...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }, { role: 'editMenu' as const }] : []), { label: 'Ansicht', submenu: [{ label: 'Vergrößern', role: 'zoomIn' }, { label: 'Verkleinern', role: 'zoomOut' }, { label: 'Originalgröße', role: 'resetZoom' }, { type: 'separator' }, { label: 'Vollbild', role: 'togglefullscreen' }, ...(app.isPackaged ? [] : [{ role: 'toggleDevTools' } as const])] }]));
+  window = new BrowserWindow({ width: 1440, height: 940, minWidth: 980, minHeight: 680, title: 'Postblick', backgroundColor: '#f5f7fa', show: false, autoHideMenuBar: true, webPreferences: preferences() });
+  secure(window);
+  // Pop-outs belong to the main window; unsent compose text is kept by the local autosave.
+  window.on('closed', () => { for (const popout of popouts.values()) if (!popout.isDestroyed()) popout.destroy(); });
   registerHandlers();
   window.once('ready-to-show', () => { window.show(); updateBadge(); });
-  await window.loadURL(development ? origin + '/' : origin + '/index.html');
+  await window.loadURL(bundle());
   initializeUpdates(window);
   const timer = setInterval(() => { if (backgroundRunning) return; backgroundRunning = true; queue = queue.then(background).catch(() => {}).finally(() => { backgroundRunning = false; }); }, 60000); timer.unref();
 }
 if (!app.requestSingleInstanceLock()) app.quit();
 else {
-  app.on('second-instance', (_event, args) => { const uri = args.find(a=>a.startsWith('mailto:')); if(uri)queue=queue.then(async()=>{try{store.state.workingDraft=parseMailto(uri);await save();window.webContents.send('state-updated',store.view());}catch{}}); if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
+  app.on('second-instance', (_event, args) => { const uri = args.find(a=>a.startsWith('mailto:')); if(uri)queue=queue.then(async()=>{try{store.state.workingDraft=parseMailto(uri);await save();broadcast(store.view());}catch{}}); if (window) { if (window.isMinimized()) window.restore(); window.focus(); } });
   app.whenReady().then(start).catch(() => { dialog.showErrorBox('Postblick konnte nicht starten', 'Der lokale Speicher oder die Desktop-Umgebung ist nicht verfügbar. Entsperre den Betriebssystem-Schlüsselspeicher. Bestehende Daten werden nicht automatisch gelöscht.'); app.quit(); });
   app.on('window-all-closed', () => app.quit());
 }

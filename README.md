@@ -20,6 +20,8 @@ Der Installer ist **nicht digital signiert**; Windows kann deshalb eine SmartScr
 
 0.2.1 erweitert Postblick: mehrere Konten, Hintergrundabruf, eigene Ordner, Kategorien, Mehrfachaktionen, Bcc, Signaturen, Vorlagen, bereinigtes HTML, formatierte Nachrichten, automatische lokale Entwürfe, Versandwarteschlange, zusätzliche Kalender, Serien, Erinnerungen, Microsoft To Do und Datenexport.
 
+Im aktuellen Entwicklungsstand (nach 0.2.1) öffnen sich Nachrichten per Doppelklick in eigenen Lese- und Verfassenfenstern; hinzu kommen Kontextmenüs für Nachrichten und Ordner, Outlook-Tastenkürzel, Mehrfachauswahl mit Strg/Umschalt, Drag-and-drop auf alle Ordner, ein Menüband „Ansicht“ sowie Sortierung und Datumsgruppen.
+
 **Die gesamte angeforderte Outlook-Funktionsliste ist noch nicht umgesetzt.** [docs/feature-status.md](docs/feature-status.md) unterscheidet vorhandenen Code, Grenzen, fehlende Implementierung und externe Voraussetzungen.
 
 Echte Kontoabläufe sind ohne Testkonten nicht Ende-zu-Ende geprüft. Ein mit Outlook vergleichbares Sicherheitsniveau ist nicht nachgewiesen. Der gemeinsame Posteingang enthält geladene Daten; Versand läuft über das aktive Konto. Die Warteschlange benötigt eine geöffnete App und wiederholt keine unklaren Versandversuche.

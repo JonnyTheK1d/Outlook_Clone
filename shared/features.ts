@@ -1,7 +1,8 @@
-import type { Command, State, Preferences, CalendarEvent, Mail } from './types';
+import type { Command, State, Preferences, CalendarEvent, Mail, SortKey } from './types';
 export const defaultPreferences = (): Preferences => ({
   signature: '', notifications: true, syncMinutes: 2, threads: false, readingPane: 'right',
-  density: 'comfortable', favorites: ['inbox'], categories: ['Arbeit', 'Privat', 'Wichtig'], templates: []
+  density: 'comfortable', favorites: ['inbox'], categories: ['Arbeit', 'Privat', 'Wichtig'], templates: [],
+  sortBy: 'date', sortDescending: true, groupByDate: true, composeInWindow: false
 });
 export function normalize(state: State): State {
   state.preferences = { ...defaultPreferences(), ...state.preferences };
@@ -43,6 +44,10 @@ export function localCommand(state: State, command: Command, uuid: () => string)
     if (command.action === 'move') mail.folder = command.folder!;
     if (command.action === 'delete') mail.folder = 'trash';
   }
+  if (command.kind === 'batch' && command.action === 'purge') {
+    if (state.mails.some(m => command.ids.includes(m.id) && m.folder !== 'trash')) throw new Error('Bitte zuerst in den Papierkorb verschieben.');
+    state.mails = state.mails.filter(m => !command.ids.includes(m.id));
+  }
   if (command.kind === 'queue') state.outbox!.push({ id: uuid(), message: command.message, createdAt: new Date().toISOString(), status: 'pending' });
   if (command.kind === 'outbox' && command.operation === 'cancel') state.outbox = state.outbox!.filter(m => m.id !== command.id);
   return state;
@@ -82,4 +87,36 @@ export function occurrences(events: CalendarEvent[], begin: Date, end: Date): Ca
     }
     return result;
   });
+}
+const replyPrefix = /^(?:(?:re|aw|wg|fw|fwd|antw):[ ]*)+/i;
+export const baseSubject = (subject: string) => subject.replace(replyPrefix, '').trim();
+export const conversationKey = (mail: Mail) => (mail.accountId || '') + '|' + (mail.conversationId || baseSubject(mail.subject).toLowerCase());
+const importanceRank = { low: 0, normal: 1, high: 2 };
+// Pinned messages stay on top, like Outlook; ties fall back to newest first.
+export function sortMails(mails: Mail[], key: SortKey = 'date', descending = true): Mail[] {
+  const value = (m: Mail): string | number => key === 'from' ? (m.sender || m.address).toLowerCase() : key === 'subject' ? baseSubject(m.subject).toLowerCase() : key === 'importance' ? importanceRank[m.importance || 'normal'] : key === 'flagged' ? Number(m.flagged) : Date.parse(m.date);
+  const compare = (a: string | number, b: string | number) => typeof a === 'string' ? a.localeCompare(b as string, 'de') : a - (b as number);
+  return [...mails].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned) || compare(value(a), value(b)) * (descending ? -1 : 1) || Date.parse(b.date) - Date.parse(a.date));
+}
+export function dateGroup(value: string, now = new Date()): string {
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const date = new Date(value), today = day(now), diff = Math.round((today - day(date)) / 86400000);
+  const weekStart = today - ((now.getDay() + 6) % 7) * 86400000;
+  if (diff < 0) return 'Zukünftig';
+  if (diff === 0) return 'Heute';
+  if (diff === 1) return 'Gestern';
+  if (day(date) >= weekStart) return 'Diese Woche';
+  if (day(date) >= weekStart - 7 * 86400000) return 'Letzte Woche';
+  if (date.getFullYear() === now.getFullYear() && date.getMonth() === now.getMonth()) return 'Diesen Monat';
+  const previous = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  if (date.getFullYear() === previous.getFullYear() && date.getMonth() === previous.getMonth()) return 'Letzten Monat';
+  return 'Älter';
+}
+export function groupLabel(mail: Mail, key: SortKey, now = new Date()): string {
+  if (mail.pinned) return 'Angeheftet';
+  if (key === 'from') return mail.sender || mail.address || 'Unbekannt';
+  if (key === 'subject') return baseSubject(mail.subject) || '(Kein Betreff)';
+  if (key === 'importance') return 'Wichtigkeit: ' + ({ low: 'Niedrig', normal: 'Normal', high: 'Hoch' })[mail.importance || 'normal'];
+  if (key === 'flagged') return mail.flagged ? 'Zur Nachverfolgung' : 'Nicht gekennzeichnet';
+  return dateGroup(mail.date, now);
 }

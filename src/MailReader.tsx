@@ -1,0 +1,21 @@
+import type { ReactNode } from 'react';
+import { ArrowLeft, ArrowRight, Download, ExternalLink, Flag, MessagesSquare, Paperclip, Pencil, Printer, ShieldCheck, Users } from 'lucide-react';
+import type { Mail, State } from '../shared/types';
+import { api } from './bridge';
+import { HtmlMail } from './HtmlMail';
+import { fullDate, initials, shortDate, type ReplyKind } from './mail';
+
+export type Run = (operation: () => Promise<State>, success?: string) => Promise<boolean>;
+export function MailReader({ mail, state, run, busy, notify, compose, editDraft, openWindow, conversation = [], select, heading = true, extra }: { mail: Mail; state: State; run: Run; busy: boolean; notify: (text: string, error?: boolean) => void; compose: (kind: ReplyKind) => void; editDraft: () => void; openWindow?: () => void; conversation?: Mail[]; select?: (mail: Mail) => void; heading?: boolean; extra?: ReactNode }) {
+  const print = () => run(() => api.manage({ kind: 'print', id: mail.id }));
+  return <>
+    {heading && <div className="reading-heading"><h2>{mail.importance === 'high' && <span className="importance-high" title="Wichtigkeit: Hoch" aria-label="Wichtigkeit: Hoch">!</span>}{mail.subject}</h2><button className="icon-button" title={mail.flagged ? 'Flagge entfernen' : 'Nachricht markieren'} aria-label={mail.flagged ? 'Flagge entfernen' : 'Nachricht markieren'} disabled={busy} onClick={() => run(() => api.mailAction({ id: mail.id, kind: 'flag', value: !mail.flagged }))}><Flag size={18} fill={mail.flagged ? 'currentColor' : 'none'}/></button></div>}
+    <div className="reading-card"><div className="mail-header"><div className="message-avatar large" data-color={mail.sender.charCodeAt(0) % 5}>{initials(mail.sender)}</div><div className="sender-detail"><strong>{mail.sender}</strong><span>&lt;{mail.address}&gt;</span><small>An: {mail.to}</small>{mail.cc && <small>Cc: {mail.cc}</small>}{mail.bcc && mail.folder !== 'inbox' && <small>Bcc: {mail.bcc}</small>}</div><div className="mail-time"><time>{fullDate(mail.date)}</time></div></div>
+      {!!mail.categories?.length && <div className="reading-categories">{mail.categories.map(c => <span className="category-chip" key={c}>{c}</span>)}</div>}
+      <div className="reply-toolbar">{mail.folder === 'drafts' ? <button disabled={busy} onClick={editDraft}><Pencil size={16}/>Entwurf bearbeiten</button> : <><button disabled={busy} onClick={() => compose('reply')}><ArrowLeft size={16}/>Antworten</button><button disabled={busy} onClick={() => compose('replyAll')}><Users size={16}/>Allen antworten</button><button disabled={busy} onClick={() => compose('forward')}><ArrowRight size={16}/>Weiterleiten</button></>}{extra}{openWindow && <button className="reader-more" title="In neuem Fenster öffnen (Eingabetaste)" aria-label="In neuem Fenster öffnen" onClick={openWindow}><ExternalLink size={16}/></button>}<button className="reader-more" title="Drucken (Strg+P)" aria-label="Drucken" disabled={busy} onClick={print}><Printer size={16}/></button></div>
+      {!!mail.attachments.length && <div className="attachment-list">{mail.attachments.map(a => <button key={a.id} disabled={busy} onClick={async () => { try { if (await api.downloadAttachment(mail.id, a.id)) notify('Anhang gespeichert.'); } catch (error) { notify((error as Error).message, true); } }}><Paperclip size={17}/><span>{a.name}<small>{Math.ceil(a.size / 1024)} KB</small></span><Download size={15}/></button>)}</div>}
+      {mail.html ? <HtmlMail html={mail.html}/> : <div className="mail-body">{mail.body}</div>}<div className="message-security"><ShieldCheck size={13}/>Bereinigte Ansicht · externe Bilder und aktive Inhalte werden blockiert</div>
+    </div>
+    {!!conversation.length && select && <div className="conversation" aria-label="Unterhaltung"><div className="sidebar-heading"><MessagesSquare size={14}/>Weitere Nachrichten in dieser Unterhaltung ({conversation.length})</div>{conversation.map(item => <button key={item.id} className={'conversation-item' + (item.read ? '' : ' unread')} onClick={() => select(item)}><strong>{item.folder === 'sent' ? 'Ich' : item.sender}</strong><span>{item.body.slice(0, 140).replace(/\s+/g, ' ')}</span><time>{shortDate(item.date)}</time></button>)}</div>}
+  </>;
+}
